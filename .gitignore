@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Build
+cpu-sources/build
+gpu-sources/build

@@ -20,38 +20,6 @@ ImagePng::~ImagePng()
     }
 }
 
-/*ImagePng* ImagePng::load(const char* filename)
-{
-    ImagePng* image = new ImagePng();
-
-    FILE* fp = fopen(filename, "rb");
-    if (!fp) return nullptr;
-
-    auto png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-    if (!png_ptr) return nullptr;
-
-    auto info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) return nullptr;
-
-    png_init_io(png_ptr, fp);
-    png_read_info(png_ptr, info_ptr);
-
-    png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
-
-    auto row_pointers = png_get_rows(png_ptr, info_ptr);
-
-    image->setWidth(png_get_image_width(png_ptr, info_ptr));
-    image->setHeight(png_get_image_height(png_ptr, info_ptr));
-
-    image->setRowPointers(row_pointers);
-
-    free(info_ptr);
-    png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-    fclose(fp);
-
-    return image;
-}*/
-
 ImagePng* ImagePng::load(const char* filename)
 {
     ImagePng* image = nullptr;
@@ -114,4 +82,51 @@ ImagePng* ImagePng::load(const char* filename)
     fclose(fp);
 
     return image;
+}
+
+void ImagePng::save(const char* filename, ImagePng* image)
+{
+    FILE* fp = fopen(filename, "wb");
+    if (!fp) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (!png_ptr) {
+        std::cerr << "Error creating PNG write struct" << std::endl;
+        fclose(fp);
+        exit(EXIT_FAILURE);
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        std::cerr << "Error creating PNG info struct" << std::endl;
+        png_destroy_write_struct(&png_ptr, nullptr);
+        fclose(fp);
+        exit(EXIT_FAILURE);
+    }
+
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        std::cerr << "Error during PNG write" << std::endl;
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(fp);
+        exit(EXIT_FAILURE);
+    }
+
+    png_init_io(png_ptr, fp);
+
+    png_set_IHDR(png_ptr, info_ptr, image->getWidth(), image->getHeight(),
+        8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+    png_write_info(png_ptr, info_ptr);
+
+    for (size_t y = 0; y < image->getHeight(); y++) {
+        png_write_row(png_ptr, image->getRowPointers()[y]);
+    }
+
+    png_write_end(png_ptr, nullptr);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    fclose(fp);
 }

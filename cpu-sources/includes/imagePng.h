@@ -13,6 +13,8 @@ public:
 
     static ImagePng* load(const char* filename);
 
+    static void save(const char* filename, ImagePng* image);
+
     inline size_t getWidth() const { return m_width; }
     inline size_t getHeight() const { return m_height; }
     inline png_bytep* getRowPointers() const { return row_pointers; }

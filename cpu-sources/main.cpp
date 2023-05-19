@@ -4,7 +4,9 @@
 
 int main()
 {
-    ImagePng* image = ImagePng::load("1.png");
+    std::string datasetPath = std::string(DATASET_DIR) + "/frames";
+
+    ImagePng* image = ImagePng::load((datasetPath + "/1.png").c_str());
 
     std::cout << "Width: " << image->getWidth() << std::endl;
     std::cout << "Height: " << image->getHeight() << std::endl;
@@ -18,6 +20,10 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    ImagePng::save("test.png", image);
+
+    delete image;
 
     return EXIT_SUCCESS;
 }

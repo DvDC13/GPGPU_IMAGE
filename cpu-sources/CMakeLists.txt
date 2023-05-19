@@ -7,10 +7,12 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -g")
 find_package(PNG REQUIRED)
 
 include_directories(${PNG_INCLUDE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/includes)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/includes
+                    ${CMAKE_CURRENT_SOURCE_DIR}/includes/color)
 
 add_library(cpu_lib STATIC)
-target_include_directories(cpu_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+target_include_directories(cpu_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/includes/color)
 
 add_subdirectory(sources)
 

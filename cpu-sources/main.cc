@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "imagePng.h"
 #include "featuresExtraction.h"
 #include "similarityMeasures.h"
+#include "utility/imagePng.hh"
 
 int main()
 {

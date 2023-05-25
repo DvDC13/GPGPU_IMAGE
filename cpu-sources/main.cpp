@@ -1,9 +1,11 @@
 #include <iostream>
 
-#include "utility/image.hh"
+#include "image.h"
 #include <fstream>
 // #include "utility/imagePng.hh"
 
+#include "featuresExtractionT.h"
+#include "similarityMeasuresT.h"
 
 void to_ppm(shared_image image, std::string name)
 {
@@ -28,12 +30,19 @@ int main()
 {
     std::string datasetPath = std::string(DATASET_DIR) + "/frames";
 
-    shared_image image =
+    shared_image imageB =
         load_png((datasetPath + "/1.png").c_str());
 
-    std::cout << "Image width: " << image->get_width() << std::endl;
-    std::cout << "Image height: " << image->get_height() << std::endl;
-    std::cout << "test: " << int((*image)(1, 1)[0]) << std::endl;
+    shared_image imageF =
+        load_png((datasetPath + "/2.png").c_str());
+
+    uint8_t vectorB = getVector(imageB, 0, 0);
+    std::cout << "Vector: " << int(vectorB) << std::endl;
+    uint8_t vectorF = getVector(imageF, 0, 0);
+    std::cout << "Vector: " << int(vectorF) << std::endl;
+
+    float tc = getTextureComponent(vectorB, vectorF);
+    std::cout << "Texture component: " << tc << std::endl;
 
     // Print all pixels in the image
     // for (size_t y = 0; y < image->get_height(); y++)
@@ -47,7 +56,7 @@ int main()
     //     std::cout << std::endl;
     // }
 
-    to_ppm(image, "test.ppm");
+    // to_ppm(image, "test.ppm");
 
 
     return EXIT_SUCCESS;

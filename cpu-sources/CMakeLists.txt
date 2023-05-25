@@ -12,11 +12,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sources)
 
 add_library(cpu_lib STATIC)
 target_include_directories(cpu_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes
-                                          ${CMAKE_CURRENT_SOURCE_DIR}/includes/color)
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/includes/color
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/includes/utility
+                                          ${CMAKE_CURRENT_SOURCE_DIR}/includes/texture)
 
-add_subdirectory(sources/utility)
+add_subdirectory(sources)
 
-add_executable(gpgpu main.cc)
+add_executable(gpgpu main.cpp)
 
 target_link_libraries(gpgpu cpu_lib ${PNG_LIBRARY})
 

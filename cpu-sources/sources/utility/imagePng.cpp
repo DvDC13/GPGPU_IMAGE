@@ -1,4 +1,4 @@
-#include "utility/imagePng.hh"
+#include "imagePng.h"
 
 ImagePng::ImagePng()
     : m_width(0), m_height(0)

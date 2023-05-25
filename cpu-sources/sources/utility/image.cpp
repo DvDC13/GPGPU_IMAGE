@@ -1,4 +1,4 @@
-#include "utility/image.hh"
+#include "image.h"
 
 shared_image load_png(const char* filename)
 {

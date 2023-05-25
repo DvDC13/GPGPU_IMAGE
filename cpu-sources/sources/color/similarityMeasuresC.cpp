@@ -1,4 +1,4 @@
-#include "similarityMeasures.h"
+#include "similarityMeasuresC.h"
 
 float* getSimilarityMeasures(float* pixelB, float* pixelF)
 {

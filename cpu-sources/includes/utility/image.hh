@@ -1,0 +1,52 @@
+#pragma once
+
+#include <array>
+#include <memory>
+#include <png.h>
+#include <stdexcept>
+#include <string.h>
+#include <string>
+#include <vector>
+
+template <class T>
+class Image;
+
+using Pixel = std::array<uint8_t, 4>;
+using Bit = bool;
+using shared_image = std::shared_ptr<Image<Pixel>>;
+
+shared_image load_png(const char* filename);
+void save_png(const std::string filename, shared_image image);
+
+template <class T>
+class Image
+{
+public:
+    Image(size_t width, size_t height);
+
+    friend shared_image load_png(const char* filename);
+    friend void save_png(const std::string filename, shared_image image);
+
+    // Get a pixel from the image
+    const T& operator()(size_t x, size_t y) const;
+
+    // Set a pixel in the image
+    T& operator()(size_t x, size_t y);
+
+    inline size_t get_width() const
+    {
+        return width;
+    }
+    
+    inline size_t get_height() const
+    {
+        return height;
+    }
+
+private:
+    size_t width;
+    size_t height;
+    std::vector<T> data;
+};
+
+#include "utility/image.hxx"

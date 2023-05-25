@@ -1,45 +1,54 @@
 #include <iostream>
 
-#include "featuresExtraction.h"
-#include "similarityMeasures.h"
-#include "utility/imagePng.hh"
+#include "utility/image.hh"
+#include <fstream>
+// #include "utility/imagePng.hh"
+
+
+void to_ppm(shared_image image, std::string name)
+{
+    std::ofstream file(name);
+    file << "P3" << std::endl;
+    file << image->get_width() << " " << image->get_height() << std::endl;
+    file << "255" << std::endl;
+
+    for (size_t y = 0; y < image->get_height(); y++)
+    {
+        for (size_t x = 0; x < image->get_width(); x++)
+        {
+            file << int((*image)(x, y)[0]) << " "
+                 << int((*image)(x, y)[1]) << " "
+                 << int((*image)(x, y)[2]) << " ";
+        }
+        file << std::endl;
+    }
+}
 
 int main()
 {
     std::string datasetPath = std::string(DATASET_DIR) + "/frames";
 
-    ImagePng* imageB = ImagePng::load((datasetPath + "/1.png").c_str());
-    ImagePng* imageF = ImagePng::load((datasetPath + "/2.png").c_str());
+    shared_image image =
+        load_png((datasetPath + "/1.png").c_str());
 
-    for (size_t y = 0; y < imageB->getHeight(); y++) {
-        for (size_t x = 0; x < imageB->getWidth(); x++) {
-            png_byte* pixelB = &(imageB->getRowPointers()[y][x * 3]);
-            png_byte* pixelF = &(imageF->getRowPointers()[y][x * 3]);
+    std::cout << "Image width: " << image->get_width() << std::endl;
+    std::cout << "Image height: " << image->get_height() << std::endl;
+    std::cout << "test: " << int((*image)(1, 1)[0]) << std::endl;
 
-            float* yCrCb_backg = RGBtoYCrCB((unsigned char*)pixelB);
-            float* yCrCb_frame = RGBtoYCrCB((unsigned char*)pixelF);
+    // Print all pixels in the image
+    // for (size_t y = 0; y < image->get_height(); y++)
+    // {
+    //     for (size_t x = 0; x < image->get_width(); x++)
+    //     {
+    //         std::cout << "(" << int((*image)(x, y)[0]) << ", "
+    //                   << int((*image)(x, y)[1]) << ", "
+    //                   << int((*image)(x, y)[2]) << ") ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 
-            float* RGB_F = new float[3];
-            RGB_F[0] = (float)pixelF[0];
-            RGB_F[1] = (float)pixelF[1];
-            RGB_F[2] = (float)pixelF[2];
+    to_ppm(image, "test.ppm");
 
-            float* RGB_B = new float[3];
-            RGB_B[0] = (float)pixelB[0];
-            RGB_B[1] = (float)pixelB[1];
-            RGB_B[2] = (float)pixelB[2];
-
-            float* s = getSimilarityMeasures(yCrCb_backg, yCrCb_frame);
-            std::cout << s[0] << " " << s[1] << " " << s[2] << std::endl;
-
-            delete[] s;
-        }
-        std::cout << std::endl;
-    }
-
-    ImagePng::save("test.png", imageB);
-
-    delete imageB;
 
     return EXIT_SUCCESS;
 }

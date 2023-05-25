@@ -1,2 +1,5 @@
 target_sources(cpu_lib PRIVATE
-                imagePng.cc)
+                imagePng.cc
+                image.cc
+                image.hxx
+                )

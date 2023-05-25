@@ -8,6 +8,7 @@ find_package(PNG REQUIRED)
 
 include_directories(${PNG_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/includes)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sources)
 
 add_library(cpu_lib STATIC)
 target_include_directories(cpu_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)

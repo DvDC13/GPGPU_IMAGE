@@ -2,4 +2,6 @@
 
 #include <cmath>
 
-float* getSimilarityMeasures(float* pixelB, float* pixelF);
+#include "image.h"
+
+float* getSimilarityMeasures(Pixel pixelB, Pixel pixelF);

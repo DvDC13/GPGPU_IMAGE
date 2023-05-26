@@ -1,6 +1,6 @@
 #include "featuresExtractionC.h"
 
-float* RGBtoYCrCB(unsigned char* pixel)
+float* RGBtoYCrCB(Pixel pixel)
 {
     float* yCrCb = new float[3];
 

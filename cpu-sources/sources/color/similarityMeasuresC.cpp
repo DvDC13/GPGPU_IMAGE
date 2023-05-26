@@ -1,6 +1,6 @@
 #include "similarityMeasuresC.h"
 
-float* getSimilarityMeasures(float* pixelB, float* pixelF)
+float* getSimilarityMeasures(Pixel pixelB, Pixel pixelF)
 {
     float* similarityMeasures = new float[3];
 

@@ -2,4 +2,6 @@
 
 #include <iostream>
 
-float* RGBtoYCrCB(unsigned char* pixel);
+#include "image.h"
+
+float* RGBtoYCrCB(Pixel pixel);

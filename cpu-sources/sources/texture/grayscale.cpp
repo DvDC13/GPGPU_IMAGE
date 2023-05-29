@@ -1,4 +1,4 @@
-#include "grayscale.h"
+#include "texture/grayscale.h"
 
 float getGrayscale(Pixel pixel)
 {

@@ -1,4 +1,4 @@
-#include "similarityMeasuresT.h"
+#include "texture/similarityMeasuresT.h"
 
 float getTextureComponent(uint8_t vector1, uint8_t vector2)
 {

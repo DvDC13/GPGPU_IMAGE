@@ -1,4 +1,4 @@
-#include "similarityMeasuresC.h"
+#include "color/similarityMeasuresC.h"
 
 float* getSimilarityMeasures(Pixel pixelB, Pixel pixelF)
 {

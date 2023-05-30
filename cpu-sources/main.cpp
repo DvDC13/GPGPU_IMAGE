@@ -51,7 +51,12 @@ int main()
 
             std::sort(vector3, vector3 + 3);
 
-            float result = vector3[0] * vector3[1] * vector3[2];
+            float* weights = new float[3];
+            weights[0] = 0.1f;
+            weights[1] = 0.3f;
+            weights[2] = 0.6f;
+
+            float result = vector3[0] * weights[0] + vector3[1] * weights[1] + vector3[2] * weights[2];
 
             delete[] vector3;
 

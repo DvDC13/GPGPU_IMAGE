@@ -1,6 +1,6 @@
 #include "image.h"
 
-shared_image load_png(const char* filename)
+shared_image load_png(const std::string filename)
 {
     // Loading image in RGB format
     cv::Mat image = cv::imread(filename);

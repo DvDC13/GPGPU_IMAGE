@@ -16,7 +16,7 @@ using Pixel = cv::Vec3b;
 using Bit = bool;
 using shared_image = std::shared_ptr<Image<Pixel>>;
 
-shared_image load_png(const char* filename);
+shared_image load_png(const std::string filename);
 void save_png(const std::string filename, shared_image image);
 
 template <class T>

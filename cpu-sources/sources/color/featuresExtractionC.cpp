@@ -1,4 +1,4 @@
-#include "featuresExtractionC.h"
+#include "color/featuresExtractionC.h"
 
 float* RGBtoYCrCB(Pixel pixel)
 {

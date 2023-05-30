@@ -1,6 +1,6 @@
 
 template <class T>
-Image<T>::Image(size_t width, size_t height)
+Image<T>::Image(int width, int height)
 {
     this->width = width;
     this->height = height;
@@ -8,23 +8,23 @@ Image<T>::Image(size_t width, size_t height)
 }
 
 template <class T>
-const T& Image<T>::get(size_t x, size_t y) const
+const T& Image<T>::get(int x, int y) const
 {
-    if (x >= width || y >= height)
+    if (x < 0 || y < 0 || x >= width || y >= height)
         throw std::out_of_range("Image index out of range");
     return data[y * width + x];
 }
 
 template <class T>
-T& Image<T>::set(size_t x, size_t y, const T& value)
+T& Image<T>::set(int x, int y, const T& value)
 {
-    if (x >= width || y >= height)
+    if (x < 0 || y < 0 || x >= width || y >= height)
         throw std::out_of_range("Image index out of range");
     return data[y * width + x] = value;
 }
 
 template <class T>
-T* Image<T>::operator[](size_t y)
+T* Image<T>::operator[](int y)
 {
     if (y >= height)
         throw std::out_of_range("Image index out of range");

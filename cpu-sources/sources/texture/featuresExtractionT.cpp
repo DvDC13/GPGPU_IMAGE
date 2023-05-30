@@ -1,6 +1,6 @@
 #include "texture/featuresExtractionT.h"
 
-uint8_t isBorder(shared_image image, size_t x, size_t y)
+uint8_t isBorder(shared_image image, int x, int y)
 {
     try
     {

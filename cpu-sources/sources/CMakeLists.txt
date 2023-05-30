@@ -6,4 +6,5 @@ target_sources(cpu_lib PRIVATE
                 texture/grayscale.cpp
                 utility/image.cpp
                 utility/image.hxx
+                utility/png_utility.cpp
                 )

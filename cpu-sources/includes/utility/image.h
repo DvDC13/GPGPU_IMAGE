@@ -2,17 +2,18 @@
 
 #include <array>
 #include <memory>
-#include <opencv2/opencv.hpp>
 #include <png.h>
 #include <stdexcept>
 #include <string.h>
 #include <string>
 #include <vector>
 
+#include "utility/png_utility.h"
+
 template <class T>
 class Image;
 
-using Pixel = cv::Vec3b;
+using Pixel = std::array<float, 3>;
 using Bit = bool;
 using shared_image = std::shared_ptr<Image<Pixel>>;
 
@@ -25,7 +26,7 @@ class Image
 public:
     Image(int width, int height);
 
-    friend shared_image load_png(const char* filename);
+    friend shared_image load_png(const std::string filename);
     friend void save_png(const std::string filename, shared_image image);
 
     // Get a pixel from the image

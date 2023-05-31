@@ -1,5 +1,7 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 
 #include "featuresExtractionC.h"
 #include "featuresExtractionT.h"
@@ -8,64 +10,69 @@
 #include "similarityMeasuresT.h"
 
 void m_sort(float* vec)
+{}
+
+
+void compare_frames(shared_image background, std::string path)
 {
 
-}
+    shared_image image2 = load_png(path);
 
-int main()
-{
-    std::string datasetPath = std::string(DATASET_DIR) + "/frames";
-    std::string frame1 = datasetPath + "/1.png";
-    std::string frame2 = datasetPath + "/2.png";
-
-    shared_image image1 = load_png(frame1);
-    shared_image image2 = load_png(frame2);
-
-    std::cout << "Image 1: " << image1->get_width() << "x"
-              << image1->get_height() << std::endl;
+    std::cout << "Image 1: " << background->get_width() << "x"
+              << background->get_height() << std::endl;
     std::cout << "Image 2: " << image2->get_width() << "x"
               << image2->get_height() << std::endl;
 
-    shared_image image1_YCrCb = std::make_shared<Image<Pixel>>(
-        image1->get_width(), image1->get_height());
+    shared_image background_YCrCb = std::make_shared<Image<Pixel>>(
+        background->get_width(), background->get_height());
     shared_image image2_YCrCb = std::make_shared<Image<Pixel>>(
         image2->get_width(), image2->get_height());
 
     shared_image resultImage = std::make_shared<Image<Pixel>>(
-        image1->get_width(), image1->get_height());
+        background->get_width(), background->get_height());
 
     float* weights = new float[3];
     weights[0] = 0.1f;
     weights[1] = 0.3f;
     weights[2] = 0.6f;
 
-    for (int y = 0; y < image1->get_height(); y++)
+    for (int y = 0; y < background->get_height(); y++)
     {
-        for (int x = 0; x < image1->get_width(); x++)
+        for (int x = 0; x < background->get_width(); x++)
         {
             // RGB
-            float* colorRGB = getSimilarityMeasures(image1->get(x, y), image2->get(x, y));
+            float* colorRGB =
+                getSimilarityMeasures(background->get(x, y), image2->get(x, y));
 
             // Color
-            Pixel yCrCb1 = RGBtoYCrCB(image1->get(x, y));
+            Pixel yCrCb1 = RGBtoYCrCB(background->get(x, y));
             Pixel yCrCb2 = RGBtoYCrCB(image2->get(x, y));
 
-            image1_YCrCb->set(x, y, yCrCb1);
+            background_YCrCb->set(x, y, yCrCb1);
             image2_YCrCb->set(x, y, yCrCb2);
 
             // YCrCb
-            float* colorComponents = getSimilarityMeasures(image1_YCrCb->get(x, y), image2_YCrCb->get(x, y));
+            float* colorComponents = getSimilarityMeasures(
+                background_YCrCb->get(x, y), image2_YCrCb->get(x, y));
 
             // Debug YCrCb This is a pixel that is in the foreground
             // if (x == 175 && y == 132)
             // {
             //     std::cout << "Pixel: " << x << " " << y << std::endl;
-            //     std::cout << "image1 RGB: " << image1->get(x, y)[0] << " " << image1->get(x, y)[1] << " " << image1->get(x, y)[2] << std::endl; 
-            //     std::cout << "image1 YCrCb: " << image1_YCrCb->get(x, y)[0] << " " << image1_YCrCb->get(x, y)[1] << " " << image1_YCrCb->get(x, y)[2] << std::endl;
-            //     std::cout << "image2 RGB: " << image2->get(x, y)[0] << " " << image2->get(x, y)[1] << " " << image2->get(x, y)[2] << std::endl;
-            //     std::cout << "image2 YCrCb: " << image2_YCrCb->get(x, y)[0] << " " << image2_YCrCb->get(x, y)[1] << " " << image2_YCrCb->get(x, y)[2] << std::endl;
-            //     std::cout << "Color RGB: " << colorRGB[0] << " " << colorRGB[1] << " " << colorRGB[2] << std::endl;
-            //     std::cout << "Color YCrCb: " << colorComponents[0] << " " << colorComponents[1] << " " << colorComponents[2] << std::endl;
+            //     std::cout << "image1 RGB: " << image1->get(x, y)[0] << " " <<
+            //     image1->get(x, y)[1] << " " << image1->get(x, y)[2] <<
+            //     std::endl; std::cout << "image1 YCrCb: " <<
+            //     image1_YCrCb->get(x, y)[0] << " " << image1_YCrCb->get(x,
+            //     y)[1] << " " << image1_YCrCb->get(x, y)[2] << std::endl;
+            //     std::cout << "image2 RGB: " << image2->get(x, y)[0] << " " <<
+            //     image2->get(x, y)[1] << " " << image2->get(x, y)[2] <<
+            //     std::endl; std::cout << "image2 YCrCb: " <<
+            //     image2_YCrCb->get(x, y)[0] << " " << image2_YCrCb->get(x,
+            //     y)[1] << " " << image2_YCrCb->get(x, y)[2] << std::endl;
+            //     std::cout << "Color RGB: " << colorRGB[0] << " " <<
+            //     colorRGB[1] << " " << colorRGB[2] << std::endl; std::cout <<
+            //     "Color YCrCb: " << colorComponents[0] << " " <<
+            //     colorComponents[1] << " " << colorComponents[2] << std::endl;
             // }
 
             // Texture
@@ -106,6 +113,25 @@ int main()
     delete[] weights;
 
     save_png("result.png", resultImage);
+}
+
+int main(int argc, char** argv)
+{
+    // get all files in the directory argv[1]
+    std::vector<std::string> files;
+    std::string path = std::string(argv[1]);
+
+    for (const auto& entry : std::filesystem::directory_iterator(path))
+        files.push_back(entry.path());
+
+    // sort strings in files
+    std::sort(files.begin(), files.end());
+
+    for (auto& file : files)
+        std::cout << file << std::endl;
+
+
+    
 
     return EXIT_SUCCESS;
 }

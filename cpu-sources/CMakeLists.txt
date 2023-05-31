@@ -2,15 +2,11 @@ cmake_minimum_required(VERSION 3.22.1)
 project(gpgpu)
 
 set(CMAKE_CXX_STANDARD 20)
-# disable warnings for deprecated enum conversion in OpenCV
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-deprecated-enum-enum-conversion -g")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -g")
 
-#TODO: rm png
 find_package(PNG REQUIRED)
-find_package(OpenCV REQUIRED)
 
-#TODO: rm png
-include_directories(${PNG_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS})
+include_directories(${PNG_INCLUDE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/includes)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sources)
 

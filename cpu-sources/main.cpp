@@ -1,11 +1,10 @@
 #include <fstream>
 #include <iostream>
-#include <opencv2/opencv.hpp>
 
-#include "image.h"
 #include "featuresExtractionC.h"
-#include "similarityMeasuresC.h"
 #include "featuresExtractionT.h"
+#include "image.h"
+#include "similarityMeasuresC.h"
 #include "similarityMeasuresT.h"
 
 int main()
@@ -17,13 +16,18 @@ int main()
     shared_image image1 = load_png(frame1);
     shared_image image2 = load_png(frame2);
 
-    std::cout << "Image 1: " << image1->get_width() << "x" << image1->get_height() << std::endl;
-    std::cout << "Image 2: " << image2->get_width() << "x" << image2->get_height() << std::endl;
+    std::cout << "Image 1: " << image1->get_width() << "x"
+              << image1->get_height() << std::endl;
+    std::cout << "Image 2: " << image2->get_width() << "x"
+              << image2->get_height() << std::endl;
 
-    shared_image image1_YCrCb = std::make_shared<Image<Pixel>>(image1->get_width(), image1->get_height());
-    shared_image image2_YCrCb = std::make_shared<Image<Pixel>>(image2->get_width(), image2->get_height());
+    shared_image image1_YCrCb = std::make_shared<Image<Pixel>>(
+        image1->get_width(), image1->get_height());
+    shared_image image2_YCrCb = std::make_shared<Image<Pixel>>(
+        image2->get_width(), image2->get_height());
 
-    shared_image resultImage = std::make_shared<Image<Pixel>>(image1->get_width(), image1->get_height());
+    shared_image resultImage = std::make_shared<Image<Pixel>>(
+        image1->get_width(), image1->get_height());
 
     float* weights = new float[3];
     weights[0] = 0.1f;
@@ -42,9 +46,12 @@ int main()
             // Pixel yCrCb2Pixel = { yCrCb2[0], yCrCb2[1], yCrCb2[2] };
             // image1_YCrCb->set(x, y, yCrCb1Pixel);
             // image2_YCrCb->set(x, y, yCrCb2Pixel);
-            // float* colorComponents = getSimilarityMeasures(image1_YCrCb->get(x, y), image2_YCrCb->get(x, y));
+            // float* colorComponents =
+            // getSimilarityMeasures(image1_YCrCb->get(x, y),
+            // image2_YCrCb->get(x, y));
 
-            float* colorComponents = getSimilarityMeasures(image1->get(x, y), image2->get(x, y));
+            float* colorComponents =
+                getSimilarityMeasures(image1->get(x, y), image2->get(x, y));
 
             // Texture
             uint8_t vector1 = getVector(image1, x, y);
@@ -60,13 +67,14 @@ int main()
 
             std::sort(vector3, vector3 + 3);
 
-            float result = vector3[0] * weights[0] + vector3[1] * weights[1] + vector3[2] * weights[2];
+            float result = vector3[0] * weights[0] + vector3[1] * weights[1]
+                + vector3[2] * weights[2];
 
             if (result < 0.67f)
             {
                 // Foreground
                 // Add a white pixel to the result image
-                resultImage->set(x, y, { 255, 255, 255 });
+                resultImage->set(x, y, { 1, 1, 1 });
             }
             else
             {

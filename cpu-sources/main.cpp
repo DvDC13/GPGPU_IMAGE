@@ -7,11 +7,16 @@
 #include "similarityMeasuresC.h"
 #include "similarityMeasuresT.h"
 
+void m_sort(float* vec)
+{
+
+}
+
 int main()
 {
     std::string datasetPath = std::string(DATASET_DIR) + "/frames";
-    std::string frame1 = datasetPath + "/3.png";
-    std::string frame2 = datasetPath + "/4.png";
+    std::string frame1 = datasetPath + "/1.png";
+    std::string frame2 = datasetPath + "/2.png";
 
     shared_image image1 = load_png(frame1);
     shared_image image2 = load_png(frame2);
@@ -38,20 +43,30 @@ int main()
     {
         for (int x = 0; x < image1->get_width(); x++)
         {
+            // RGB
+            float* colorRGB = getSimilarityMeasures(image1->get(x, y), image2->get(x, y));
+
             // Color
-            // float* yCrCb1 = RGBtoYCrCB(image1->get(x, y));
-            // float* yCrCb2 = RGBtoYCrCB(image2->get(x, y));
+            Pixel yCrCb1 = RGBtoYCrCB(image1->get(x, y));
+            Pixel yCrCb2 = RGBtoYCrCB(image2->get(x, y));
 
-            // Pixel yCrCb1Pixel = { yCrCb1[0], yCrCb1[1], yCrCb1[2] };
-            // Pixel yCrCb2Pixel = { yCrCb2[0], yCrCb2[1], yCrCb2[2] };
-            // image1_YCrCb->set(x, y, yCrCb1Pixel);
-            // image2_YCrCb->set(x, y, yCrCb2Pixel);
-            // float* colorComponents =
-            // getSimilarityMeasures(image1_YCrCb->get(x, y),
-            // image2_YCrCb->get(x, y));
+            image1_YCrCb->set(x, y, yCrCb1);
+            image2_YCrCb->set(x, y, yCrCb2);
 
-            float* colorComponents =
-                getSimilarityMeasures(image1->get(x, y), image2->get(x, y));
+            // YCrCb
+            float* colorComponents = getSimilarityMeasures(image1_YCrCb->get(x, y), image2_YCrCb->get(x, y));
+
+            // Debug YCrCb This is a pixel that is in the foreground
+            // if (x == 175 && y == 132)
+            // {
+            //     std::cout << "Pixel: " << x << " " << y << std::endl;
+            //     std::cout << "image1 RGB: " << image1->get(x, y)[0] << " " << image1->get(x, y)[1] << " " << image1->get(x, y)[2] << std::endl; 
+            //     std::cout << "image1 YCrCb: " << image1_YCrCb->get(x, y)[0] << " " << image1_YCrCb->get(x, y)[1] << " " << image1_YCrCb->get(x, y)[2] << std::endl;
+            //     std::cout << "image2 RGB: " << image2->get(x, y)[0] << " " << image2->get(x, y)[1] << " " << image2->get(x, y)[2] << std::endl;
+            //     std::cout << "image2 YCrCb: " << image2_YCrCb->get(x, y)[0] << " " << image2_YCrCb->get(x, y)[1] << " " << image2_YCrCb->get(x, y)[2] << std::endl;
+            //     std::cout << "Color RGB: " << colorRGB[0] << " " << colorRGB[1] << " " << colorRGB[2] << std::endl;
+            //     std::cout << "Color YCrCb: " << colorComponents[0] << " " << colorComponents[1] << " " << colorComponents[2] << std::endl;
+            // }
 
             // Texture
             uint8_t vector1 = getVector(image1, x, y);
@@ -61,10 +76,11 @@ int main()
 
             // Choquet integral
             float* vector3 = new float[3];
-            vector3[0] = colorComponents[1];
-            vector3[1] = colorComponents[2];
+            vector3[0] = colorComponents[0];
+            vector3[1] = colorComponents[1];
             vector3[2] = textureComponent;
 
+            // a la mano
             std::sort(vector3, vector3 + 3);
 
             float result = vector3[0] * weights[0] + vector3[1] * weights[1]
@@ -74,7 +90,7 @@ int main()
             {
                 // Foreground
                 // Add a white pixel to the result image
-                resultImage->set(x, y, { 1, 1, 1 });
+                resultImage->set(x, y, { 255, 255, 255 });
             }
             else
             {

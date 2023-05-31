@@ -4,4 +4,4 @@
 
 #include "image.h"
 
-float* RGBtoYCrCB(Pixel pixel);
+Pixel RGBtoYCrCB(Pixel pixel);

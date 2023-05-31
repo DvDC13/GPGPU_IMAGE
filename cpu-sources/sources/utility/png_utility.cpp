@@ -62,9 +62,9 @@ namespace png_utility
             for (int x = 0; x < width; x++)
             {
                 png_bytep px = &(row[x * 3]);
-                array[3 * (y * width + x)] = px[0] / 255.0f;
-                array[3 * (y * width + x) + 1] = px[1] / 255.0f;
-                array[3 * (y * width + x) + 2] = px[2] / 255.0f;
+                array[3 * (y * width + x)] = px[0];
+                array[3 * (y * width + x) + 1] = px[1];
+                array[3 * (y * width + x) + 2] = px[2];
             }
         }
     }
@@ -78,9 +78,9 @@ namespace png_utility
             for (int x = 0; x < width; x++)
             {
                 png_bytep px = &(row[x * 3]);
-                px[0] = array[3 * (y * width + x)] * 255.0f;
-                px[1] = array[3 * (y * width + x) + 1] * 255.0f;
-                px[2] = array[3 * (y * width + x) + 2] * 255.0f;
+                px[0] = array[3 * (y * width + x)];
+                px[1] = array[3 * (y * width + x) + 1];
+                px[2] = array[3 * (y * width + x) + 2];
             }
         }
     }

@@ -13,15 +13,13 @@ void m_sort(float* vec)
 {}
 
 
-void compare_frames(shared_image background, std::string path)
+void compare_frames(shared_image background, std::string path, size_t nb_iter)
 {
 
     shared_image image2 = load_png(path);
 
-    std::cout << "Image 1: " << background->get_width() << "x"
-              << background->get_height() << std::endl;
     std::cout << "Image 2: " << image2->get_width() << "x"
-              << image2->get_height() << std::endl;
+              << image2->get_height() << " nb_iter: " << nb_iter << std::endl;
 
     shared_image background_YCrCb = std::make_shared<Image<Pixel>>(
         background->get_width(), background->get_height());
@@ -59,11 +57,11 @@ void compare_frames(shared_image background, std::string path)
             // if (x == 175 && y == 132)
             // {
             //     std::cout << "Pixel: " << x << " " << y << std::endl;
-            //     std::cout << "image1 RGB: " << image1->get(x, y)[0] << " " <<
-            //     image1->get(x, y)[1] << " " << image1->get(x, y)[2] <<
-            //     std::endl; std::cout << "image1 YCrCb: " <<
-            //     image1_YCrCb->get(x, y)[0] << " " << image1_YCrCb->get(x,
-            //     y)[1] << " " << image1_YCrCb->get(x, y)[2] << std::endl;
+            //     std::cout << "background RGB: " << background->get(x, y)[0] << " " <<
+            //     background->get(x, y)[1] << " " << background->get(x, y)[2] <<
+            //     std::endl; std::cout << "background YCrCb: " <<
+            //     background_YCrCb->get(x, y)[0] << " " << background_YCrCb->get(x,
+            //     y)[1] << " " << background_YCrCb->get(x, y)[2] << std::endl;
             //     std::cout << "image2 RGB: " << image2->get(x, y)[0] << " " <<
             //     image2->get(x, y)[1] << " " << image2->get(x, y)[2] <<
             //     std::endl; std::cout << "image2 YCrCb: " <<
@@ -76,7 +74,7 @@ void compare_frames(shared_image background, std::string path)
             // }
 
             // Texture
-            uint8_t vector1 = getVector(image1, x, y);
+            uint8_t vector1 = getVector(background, x, y);
             uint8_t vector2 = getVector(image2, x, y);
 
             float textureComponent = getTextureComponent(vector1, vector2);
@@ -112,7 +110,7 @@ void compare_frames(shared_image background, std::string path)
 
     delete[] weights;
 
-    save_png("result.png", resultImage);
+    save_png("result/result_" + std::to_string(nb_iter) + ".png", resultImage);
 }
 
 int main(int argc, char** argv)
@@ -127,11 +125,9 @@ int main(int argc, char** argv)
     // sort strings in files
     std::sort(files.begin(), files.end());
 
-    for (auto& file : files)
-        std::cout << file << std::endl;
-
-
-    
+    shared_image background = load_png(files[0]);
+    for (auto it = files.begin() + 1; it != files.end(); it++)
+        compare_frames(background, *it, it - files.begin());
 
     return EXIT_SUCCESS;
 }

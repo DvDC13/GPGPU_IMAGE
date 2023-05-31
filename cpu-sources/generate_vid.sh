@@ -1,11 +1,11 @@
 #!/bin/bash
 
-mkdir -p frames
-rm -rf frames/*.png
+mkdir -p dataset/video_frames
+rm -rf dataset/video_frames/*.png
 
-filename="frames/frame"
+filename="dataset/video_frames/frame"
 
 ffmpeg -i "$1" $filename%03d.png
 
-
-
+mkdir -p result/
+rm -rf result/*

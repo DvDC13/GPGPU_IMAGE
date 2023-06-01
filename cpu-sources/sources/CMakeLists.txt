@@ -7,4 +7,6 @@ target_sources(cpu_lib PRIVATE
                 utility/image.cpp
                 utility/image.hxx
                 utility/png_utility.cpp
+                utility/choquet.cpp
+                utility/utility.hxx
                 )

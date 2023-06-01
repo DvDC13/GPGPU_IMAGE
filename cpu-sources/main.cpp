@@ -1,38 +1,39 @@
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <algorithm>
 
 #include "featuresExtractionC.h"
 #include "featuresExtractionT.h"
 #include "image.h"
 #include "similarityMeasuresC.h"
 #include "similarityMeasuresT.h"
+#include "utility/choquet.h"
 
-void m_sort(float* vec)
-{}
+shared_bit_vector getBitVector(shared_image image)
+{
+    shared_bit_vector result = std::make_shared<Image<uint8_t>>(
+        image->get_width(), image->get_height());
 
+    for (int y = 0; y < image->get_height(); y++)
+        for (int x = 0; x < image->get_width(); x++)
+            result->set(x, y, getVector(image, x, y));
+
+    return result;
+}
 
 void compare_frames(shared_image background, std::string path, size_t nb_iter)
 {
-
     shared_image image2 = load_png(path);
 
     std::cout << "Image 2: " << image2->get_width() << "x"
               << image2->get_height() << " nb_iter: " << nb_iter << std::endl;
 
-    shared_image background_YCrCb = std::make_shared<Image<Pixel>>(
-        background->get_width(), background->get_height());
-    shared_image image2_YCrCb = std::make_shared<Image<Pixel>>(
-        image2->get_width(), image2->get_height());
-
-    shared_image resultImage = std::make_shared<Image<Pixel>>(
+    shared_mask resultImage = std::make_shared<Image<Bit>>(
         background->get_width(), background->get_height());
 
-    float* weights = new float[3];
-    weights[0] = 0.1f;
-    weights[1] = 0.3f;
-    weights[2] = 0.6f;
+    static shared_bit_vector backgroundBitVector = getBitVector(background);
+    shared_bit_vector frame = getBitVector(image2);
 
     for (int y = 0; y < background->get_height(); y++)
     {
@@ -42,75 +43,21 @@ void compare_frames(shared_image background, std::string path, size_t nb_iter)
             float* colorRGB =
                 getSimilarityMeasures(background->get(x, y), image2->get(x, y));
 
-            // Color
-            Pixel yCrCb1 = RGBtoYCrCB(background->get(x, y));
-            Pixel yCrCb2 = RGBtoYCrCB(image2->get(x, y));
-
-            background_YCrCb->set(x, y, yCrCb1);
-            image2_YCrCb->set(x, y, yCrCb2);
-
-            // YCrCb
-            float* colorComponents = getSimilarityMeasures(
-                background_YCrCb->get(x, y), image2_YCrCb->get(x, y));
-
-            // Debug YCrCb This is a pixel that is in the foreground
-            // if (x == 175 && y == 132)
-            // {
-            //     std::cout << "Pixel: " << x << " " << y << std::endl;
-            //     std::cout << "background RGB: " << background->get(x, y)[0] << " " <<
-            //     background->get(x, y)[1] << " " << background->get(x, y)[2] <<
-            //     std::endl; std::cout << "background YCrCb: " <<
-            //     background_YCrCb->get(x, y)[0] << " " << background_YCrCb->get(x,
-            //     y)[1] << " " << background_YCrCb->get(x, y)[2] << std::endl;
-            //     std::cout << "image2 RGB: " << image2->get(x, y)[0] << " " <<
-            //     image2->get(x, y)[1] << " " << image2->get(x, y)[2] <<
-            //     std::endl; std::cout << "image2 YCrCb: " <<
-            //     image2_YCrCb->get(x, y)[0] << " " << image2_YCrCb->get(x,
-            //     y)[1] << " " << image2_YCrCb->get(x, y)[2] << std::endl;
-            //     std::cout << "Color RGB: " << colorRGB[0] << " " <<
-            //     colorRGB[1] << " " << colorRGB[2] << std::endl; std::cout <<
-            //     "Color YCrCb: " << colorComponents[0] << " " <<
-            //     colorComponents[1] << " " << colorComponents[2] << std::endl;
-            // }
-
             // Texture
-            uint8_t vector1 = getVector(background, x, y);
-            uint8_t vector2 = getVector(image2, x, y);
-
+            uint8_t vector1 = backgroundBitVector->get(x, y);
+            uint8_t vector2 = frame->get(x, y);
             float textureComponent = getTextureComponent(vector1, vector2);
 
-            // Choquet integral
-            float* vector3 = new float[3];
-            vector3[0] = colorComponents[0];
-            vector3[1] = colorComponents[1];
-            vector3[2] = textureComponent;
+            float result = compute_integral(
+                { colorRGB[0], colorRGB[1], textureComponent });
 
-            // a la mano
-            std::sort(vector3, vector3 + 3);
-
-            float result = vector3[0] * weights[0] + vector3[1] * weights[1]
-                + vector3[2] * weights[2];
-
-            if (result < 0.67f)
-            {
-                // Foreground
-                // Add a white pixel to the result image
-                resultImage->set(x, y, { 255, 255, 255 });
-            }
-            else
-            {
-                // Background
-                // Add a black pixel to the result image
-                resultImage->set(x, y, { 0, 0, 0 });
-            }
-
-            delete[] vector3;
+            const bool isForeground = (result < 0.67) ? true : false;
+            resultImage->set(x, y, isForeground);
         }
     }
 
-    delete[] weights;
-
-    save_png("result/result_" + std::to_string(nb_iter) + ".png", resultImage);
+    save_mask("dataset/results/mask_" + std::to_string(nb_iter) + ".png",
+              resultImage);
 }
 
 int main(int argc, char** argv)

@@ -37,3 +37,22 @@ void save_png(const std::string filename, shared_image image)
         delete[] row_pointers[y];
     delete[] row_pointers;
 }
+
+void save_mask(const std::string filename, shared_mask mask)
+{
+    size_t width = mask->width;
+    size_t height = mask->height;
+
+    png_bytep* row_pointers = new png_bytep[height];
+
+    for (size_t y = 0; y < height; y++)
+        row_pointers[y] = new png_byte[width * 3];
+
+    png_utility::bit_array_to_rows(mask->data, row_pointers, width, height);
+
+    png_utility::write_png_file(filename, row_pointers, width, height);
+
+    for (size_t y = 0; y < height; y++)
+        delete[] row_pointers[y];
+    delete[] row_pointers;
+}

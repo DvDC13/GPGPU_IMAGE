@@ -96,6 +96,7 @@ namespace png_utility
                                                   nullptr, nullptr, nullptr);
         if (!png)
         {
+            throw std::runtime_error("png_create_write_struct failed");
             fclose(fp);
         }
 
@@ -104,12 +105,14 @@ namespace png_utility
         {
             png_destroy_write_struct(&png, nullptr);
             fclose(fp);
+            throw std::runtime_error("png_create_info_struct failed");
         }
 
         if (setjmp(png_jmpbuf(png)))
         {
             png_destroy_write_struct(&png, &info);
             fclose(fp);
+            throw std::runtime_error("setjmp failed");
         }
 
         png_init_io(png, fp);
@@ -127,6 +130,20 @@ namespace png_utility
         png_destroy_write_struct(&png, &info);
 
         fclose(fp);
+    }
+
+    void bit_array_to_rows(std::vector<Bit>& bits, png_bytep* rows, int width,
+                           int height)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            png_bytep row = rows[y];
+            for (int x = 0; x < width; x++)
+            {
+                png_bytep px = &(row[x * 3]);
+                memset(px, bits[y * width + x] ? 255 : 0, 3);
+            }
+        }
     }
 
 } // namespace png_utility

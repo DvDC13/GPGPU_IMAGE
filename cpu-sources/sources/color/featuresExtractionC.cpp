@@ -2,7 +2,7 @@
 
 Pixel RGBtoYCrCB(Pixel pixel)
 {
-    Pixel yCrCb = std::array<float, 3>();
+    Pixel yCrCb;
 
     float Y = 0.25 * pixel[0] + 0.504 * pixel[1] + 0.098 * pixel[2] + 16;
     float Cr = 0.439 * pixel[0] - 0.368 * pixel[1] - 0.071 * pixel[2] + 128;

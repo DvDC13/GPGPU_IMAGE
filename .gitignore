@@ -34,3 +34,7 @@
 # Build
 cpu-sources/build
 gpu-sources/build
+
+.vscode
+
+dataset

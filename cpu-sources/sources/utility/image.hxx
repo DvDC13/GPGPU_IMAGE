@@ -16,11 +16,12 @@ const T& Image<T>::get(int x, int y) const
 }
 
 template <class T>
-T& Image<T>::set(int x, int y, const T& value)
+T Image<T>::set(int x, int y, const T& value)
 {
     if (x < 0 || y < 0 || x >= width || y >= height)
         throw std::out_of_range("Image index out of range");
-    return data[y * width + x] = value;
+    data[y * width + x] = value;
+    return data[y * width + x];
 }
 
 template <class T>
@@ -28,5 +29,7 @@ T* Image<T>::operator[](int y)
 {
     if (y >= height)
         throw std::out_of_range("Image index out of range");
-    return &data[y * width];
+    return &(data[y * width]);
 }
+
+#include "utility/image.h"

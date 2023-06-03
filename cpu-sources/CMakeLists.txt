@@ -20,7 +20,7 @@ add_subdirectory(sources)
 
 add_executable(gpgpu main.cpp)
 
-target_link_libraries(gpgpu cpu_lib ${PNG_LIBRARY} ${OpenCV_LIBS})
+target_link_libraries(gpgpu cpu_lib ${PNG_LIBRARY})
 
 set(DATASET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../dataset)
 

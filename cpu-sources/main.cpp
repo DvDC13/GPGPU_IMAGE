@@ -40,8 +40,7 @@ void compare_frames(shared_image background, std::string path, size_t nb_iter)
         for (int x = 0; x < background->get_width(); x++)
         {
             // RGB
-            float* colorRGB =
-                getSimilarityMeasures(background->get(x, y), image2->get(x, y));
+            float* colorRGB = getSimilarityMeasures(background->get(x, y), image2->get(x, y));
 
             // Texture
             uint8_t vector1 = backgroundBitVector->get(x, y);
@@ -62,6 +61,12 @@ void compare_frames(shared_image background, std::string path, size_t nb_iter)
 
 int main(int argc, char** argv)
 {
+    if (argc != 2)
+    {
+        std::cout << "Usage: " << argv[0] << " <path to dataset>" << std::endl;
+        return EXIT_FAILURE;
+    }
+
     // get all files in the directory argv[1]
     std::vector<std::string> files;
     std::string path = std::string(argv[1]);

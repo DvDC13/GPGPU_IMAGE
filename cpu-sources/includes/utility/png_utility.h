@@ -9,6 +9,7 @@
 
 namespace png_utility
 {
+
     using Bit = bool;
 
     png_bytep* read_png_file(const std::string& filename, size_t& width,

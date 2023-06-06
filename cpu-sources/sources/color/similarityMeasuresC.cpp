@@ -1,8 +1,8 @@
 #include "color/similarityMeasuresC.h"
 
-float* getSimilarityMeasures(Pixel pixelB, Pixel pixelF)
+std::array<float, 3> getSimilarityMeasures(Pixel pixelB, Pixel pixelF)
 {
-    float* similarityMeasures = new float[3];
+    std::array<float, 3> similarityMeasures;
 
     if (pixelB[0] == 0.0f && pixelF[0] == 0.0f)
     {

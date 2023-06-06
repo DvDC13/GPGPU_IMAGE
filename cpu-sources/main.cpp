@@ -40,7 +40,8 @@ void compare_frames(shared_image background, std::string path, size_t nb_iter)
         for (int x = 0; x < background->get_width(); x++)
         {
             // RGB
-            float* colorRGB = getSimilarityMeasures(background->get(x, y), image2->get(x, y));
+            std::array<float, 3> colorRGB =
+                getSimilarityMeasures(background->get(x, y), image2->get(x, y));
 
             // Texture
             uint8_t vector1 = backgroundBitVector->get(x, y);

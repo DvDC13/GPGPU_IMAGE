@@ -4,4 +4,4 @@
 
 #include "image.h"
 
-float* getSimilarityMeasures(Pixel pixelB, Pixel pixelF);
+std::array<float, 3> getSimilarityMeasures(Pixel pixelB, Pixel pixelF);

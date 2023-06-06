@@ -10,6 +10,11 @@
 #include "similarityMeasuresT.h"
 #include "utility/choquet.h"
 
+void log(std::string status, std::string message)
+{
+    std::cerr << "[" << status << "] " << message << '\n';
+}
+
 shared_bit_vector getBitVector(shared_image image)
 {
     shared_bit_vector result = std::make_shared<Image<uint8_t>>(
@@ -22,12 +27,11 @@ shared_bit_vector getBitVector(shared_image image)
     return result;
 }
 
-void compare_frames(shared_image background, std::string path, size_t nb_iter)
+void compare_frames(shared_image background, shared_image image2,
+                    size_t nb_iter)
 {
-    shared_image image2 = load_png(path);
-
-    std::cout << "Image 2: " << image2->get_width() << "x"
-              << image2->get_height() << " nb_iter: " << nb_iter << std::endl;
+    std::cout << "frame: " << image2->get_width() << "x" << image2->get_height()
+              << " nb_iter: " << nb_iter << std::endl;
 
     shared_mask resultImage = std::make_shared<Image<Bit>>(
         background->get_width(), background->get_height());
@@ -72,15 +76,22 @@ int main(int argc, char** argv)
     std::vector<std::string> files;
     std::string path = std::string(argv[1]);
 
+    std::vector<shared_image> images;
+
     for (const auto& entry : std::filesystem::directory_iterator(path))
         files.push_back(entry.path());
 
     // sort strings in files
     std::sort(files.begin(), files.end());
 
-    shared_image background = load_png(files[0]);
+    files.reserve(files.size() - 1);
+
     for (auto it = files.begin() + 1; it != files.end(); it++)
-        compare_frames(background, *it, it - files.begin());
+        images.push_back(load_png(*it));
+
+    shared_image background = load_png(files[0]);
+    for (auto it = images.begin() + 1; it != images.end(); it++)
+        compare_frames(background, *it, it - images.begin());
 
     return EXIT_SUCCESS;
 }

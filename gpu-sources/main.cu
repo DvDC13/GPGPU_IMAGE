@@ -7,7 +7,10 @@
 #include "similarityMeasuresT.cuh"
 #include "choquet.cuh"
 
-#include "image.h"
+#include "image.cuh"
+
+cudaStream_t stream1;
+cudaStream_t stream2;
 
 shared_bit_vector getBitVector(shared_image image)
 {
@@ -25,10 +28,10 @@ shared_bit_vector getBitVector(shared_image image)
     cudaXMemcpy(deviceImageData, image->get_data().data(), size * sizeof(Pixel), cudaMemcpyHostToDevice);
 
     // Launch the kernel
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     calculateBitVector<<<gridSize, blockSize>>>(deviceImageData, deviceBitVectorData, width, height);
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 
     // Copy bit vector data from device to host
     std::vector<uint8_t> hostBitVectorData(size);
@@ -65,7 +68,7 @@ shared_image getColorImage(shared_image image, shared_image background)
     cudaXMemcpy(deviceBackgroundData, background->get_data().data(), size * sizeof(Pixel), cudaMemcpyHostToDevice);
 
     // Launch the kernel
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     calculateSimilarityMeasures<<<gridSize, blockSize>>>(deviceImageData, deviceBackgroundData, deviceColorImageData, width, height);
     cudaDeviceSynchronize();
@@ -106,7 +109,7 @@ shared_float_vector getTextureComponents(shared_bit_vector image, shared_bit_vec
     cudaXMemcpy(deviceBackgroundData, background->get_data().data(), size * sizeof(uint8_t), cudaMemcpyHostToDevice);
 
     // Launch the kernel
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     calculateTextureComponents<<<gridSize, blockSize>>>(deviceImageData, deviceBackgroundData, deviceTextureComponentsData, width, height);
     cudaDeviceSynchronize();
@@ -147,7 +150,7 @@ shared_float_vector computeChoquetIntegral(shared_float_vector textureComponents
     cudaXMemcpy(deviceColorComponentsData, colorComponents->get_data().data(), size * sizeof(Pixel), cudaMemcpyHostToDevice);
 
     // Launch the kernel
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     calculateChoquetIntegral<<<gridSize, blockSize>>>(deviceColorComponentsData, deviceTextureComponentsData, deviceChoquetIntegralData, width, height);
     cudaDeviceSynchronize();
@@ -157,9 +160,9 @@ shared_float_vector computeChoquetIntegral(shared_float_vector textureComponents
     cudaXMemcpy(hostChoquetIntegralData.data(), deviceChoquetIntegralData, size * sizeof(float), cudaMemcpyDeviceToHost);
 
     // Free device memory
-    cudaFree(deviceTextureComponentsData);
-    cudaFree(deviceColorComponentsData);
-    cudaFree(deviceChoquetIntegralData);
+    cudaXFree(deviceTextureComponentsData);
+    cudaXFree(deviceColorComponentsData);
+    cudaXFree(deviceChoquetIntegralData);
 
     // Create a shared_float_vector from the host data
     shared_float_vector result = std::make_shared<Image<float>>(width, height);
@@ -185,7 +188,7 @@ shared_mask getMaskResult(shared_float_vector choquetIntegral, float threshold)
     cudaXMemcpy(deviceChoquetIntegralData, choquetIntegral->get_data().data(), size * sizeof(float), cudaMemcpyHostToDevice);
 
     // Launch the kernel
-    dim3 blockSize(16, 16);
+    dim3 blockSize(32, 32);
     dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
     calculateMask<<<gridSize, blockSize>>>(deviceChoquetIntegralData, deviceMaskData, width, height, threshold);
     cudaDeviceSynchronize();
@@ -205,29 +208,28 @@ shared_mask getMaskResult(shared_float_vector choquetIntegral, float threshold)
     return result;
 }
 
-void compare_frames(shared_image host_background, std::string path, size_t nb_iter)
+std::vector<shared_mask> compare_batches(shared_image host_background, std::vector<shared_image>& host_images, shared_bit_vector backgroundBitVector, size_t batch_size)
 {
-    shared_image host_image = load_png(path);
+    std::vector<shared_bit_vector> batch_frames(batch_size);
+    std::vector<shared_image> batch_color_components(batch_size);
+    std::vector<shared_float_vector> batch_texture_components(batch_size);
+    std::vector<shared_float_vector> batch_choquet_integrals(batch_size);
+    std::vector<shared_mask> batch_masks(batch_size);
 
-    std::cout << "Frame : " << host_image->get_width() << "x"
-              << host_image->get_height() << " nb_iter: " << nb_iter << std::endl;
+    #pragma omp parallel for
+    for (size_t i = 0; i < batch_size; i++)
+    {
+        size_t frame_idx = i;
+        shared_image frame = host_images[frame_idx];
+        
+        batch_frames[i] = getBitVector(frame);
+        batch_color_components[i] = getColorImage(frame, host_background);
+        batch_texture_components[i] = getTextureComponents(batch_frames[i], backgroundBitVector);
+        batch_choquet_integrals[i] = computeChoquetIntegral(batch_texture_components[i], batch_color_components[i]);
+        batch_masks[i] = getMaskResult(batch_choquet_integrals[i], 0.67f);
+    }
 
-    static shared_bit_vector backgroundBitVector = getBitVector(host_background);
-    shared_bit_vector frame = getBitVector(host_image);
-
-    // RGB
-    shared_image colorComponents = getColorImage(host_image, host_background);
-
-    // Texture
-    shared_float_vector textureComponents = getTextureComponents(frame, backgroundBitVector);
-
-    shared_float_vector choquetIntegral = computeChoquetIntegral(textureComponents, colorComponents);
-
-    shared_mask resultImage = getMaskResult(choquetIntegral, 0.67f);
-
-    save_mask("dataset/results/mask_" + std::to_string(nb_iter) + ".png", resultImage);
-
-    std::cout << "Done" << std::endl;
+    return batch_masks;
 }
 
 int main(int argc, char** argv)
@@ -238,23 +240,61 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    // get all files in the directory argv[1]
     std::vector<std::string> files;
     std::string path = std::string(argv[1]);
+
+    std::vector<shared_image> images;
 
     for (const auto& entry : std::filesystem::directory_iterator(path))
         files.push_back(entry.path());
 
-    // sort strings in files
     std::sort(files.begin(), files.end());
 
-    shared_image host_background = load_png(files[0]);
-    for (auto it = files.begin() + 1; it != files.end(); it++)
-        compare_frames(host_background, *it, it - files.begin());
+    files.reserve(files.size() - 1);
 
-    // std::string path = std::string(argv[1]);
-    // shared_image host_background = load_png(path + "/1.png");
-    // compare_frames(host_background, path + "/2.png", 1);
+    for (auto it = files.begin() + 1; it != files.end(); it++)
+        images.push_back(load_png(*it));
+
+    shared_image background = load_png(files[0]);
+
+    size_t batch_size = 10;
+
+    std::vector<std::vector<shared_mask>> masks;
+
+    shared_bit_vector backgroundBitVector = getBitVector(background);
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+    for (auto it = images.begin() + 1; it != images.end(); it += batch_size)
+    {
+        auto batch_end = it + batch_size;
+        if (batch_end > images.end())
+        {
+            batch_end = images.end();
+            batch_size = batch_end - it;
+        }
+
+        std::vector<shared_image> batch_images(it, batch_end);
+        std::vector<shared_mask> batch_masks = compare_batches(background, batch_images, backgroundBitVector, batch_size);
+
+        masks.push_back(batch_masks);
+    }
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+    for (size_t i = 0; i < masks.size(); i++)
+    {
+        for (size_t j = 0; j < masks[i].size(); j++)
+        {
+            save_mask("dataset/results/mask_" + std::to_string(i * masks[i].size() + j) + ".png", masks[i][j]);
+        }
+    }
+
+    float total_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    std::cout << "Elapsed time: " << total_time << " ms" << std::endl;
+    std::cout << "FPS: " << 1000.0f / (total_time / images.size()) << std::endl;
+
+    cudaDeviceReset();
 
     return EXIT_SUCCESS;
 }

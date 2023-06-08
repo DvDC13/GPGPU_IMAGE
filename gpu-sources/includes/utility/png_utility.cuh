@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "utility/image.h"
+#include "utility/image.cuh"
 
 namespace png_utility
 {

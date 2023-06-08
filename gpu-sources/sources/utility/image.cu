@@ -1,4 +1,4 @@
-#include "image.h"
+#include "image.cuh"
 
 shared_image load_png(const std::string filename)
 {

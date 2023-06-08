@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "utility/png_utility.h"
+#include "utility/png_utility.cuh"
 
 template <class T>
 class Image;
@@ -75,4 +75,4 @@ private:
     std::vector<T> data;
 };
 
-#include "utility/image.hxx"
+#include "utility/image.cuhxx"

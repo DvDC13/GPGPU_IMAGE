@@ -32,4 +32,4 @@ T* Image<T>::operator[](int y)
     return &(data[y * width]);
 }
 
-#include "utility/image.h"
+#include "utility/image.cuh"

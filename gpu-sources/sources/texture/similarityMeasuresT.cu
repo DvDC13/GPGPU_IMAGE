@@ -12,3 +12,9 @@ __global__ void calculateTextureComponents(uint8_t* image, uint8_t* background, 
         result[index] = __popc(vector) / 8.0f;
     }
 }
+
+// __device__ void calculateTextureComponents(uint8_t* image, uint8_t* background, float* result, int width, int height, int index)
+// {
+//     uint8_t vector = ~(image[index] ^ background[index]);
+//     result[index] = __popc(vector) / 8.0f;
+// }

@@ -1,4 +1,4 @@
-#include "utility/png_utility.h"
+#include "utility/png_utility.cuh"
 
 namespace png_utility
 {

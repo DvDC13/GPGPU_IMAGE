@@ -12,6 +12,11 @@ void cudaXMemcpy(void* dst, const void* src, size_t count, enum cudaMemcpyKind k
     gpuErrorCheck(cudaMemcpy(dst, src, count, kind));
 }
 
+void cudaXMemcpyAsync(void* dst, const void* src, size_t count, enum cudaMemcpyKind kind, cudaStream_t stream)
+{
+    gpuErrorCheck(cudaMemcpyAsync(dst, src, count, kind, stream));
+}
+
 void cudaXMallocPitch(void** devPtr, size_t* pitch, size_t width, size_t height)
 {
     gpuErrorCheck(cudaMallocPitch(devPtr, pitch, width, height));

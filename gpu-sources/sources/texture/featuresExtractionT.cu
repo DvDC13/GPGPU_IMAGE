@@ -39,7 +39,7 @@ __global__ void calculateBitVectorBackground(const Pixel* imageData, uint8_t* bi
     }
 }
 
-__global__ void calculateBitVector(const Pixel* imageData, uint8_t* bitVectorData, size_t batch_index, size_t batch_size, int width, int height)
+__global__ void calculateBitVector(const Pixel* imageData, uint8_t* bitVectorData, size_t batch_size, int width, int height)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -47,7 +47,7 @@ __global__ void calculateBitVector(const Pixel* imageData, uint8_t* bitVectorDat
 
     if (x < width && y < height && z < batch_size)
     {
-        int index = (z + batch_index) * width * height + y * width + x;
+        int index = z * width * height + y * width + x;
 
         uint8_t vector = 0;
 
@@ -62,14 +62,14 @@ __global__ void calculateBitVector(const Pixel* imageData, uint8_t* bitVectorDat
             }
         };
 
-        vector = (vector << 1) + (isBorder(-1, -1) < gray);
-        vector = (vector << 1) + (isBorder(0, -1) < gray);
-        vector = (vector << 1) + (isBorder(1, -1) < gray);
-        vector = (vector << 1) + (isBorder(1, 0) < gray);
-        vector = (vector << 1) + (isBorder(1, 1) < gray);
-        vector = (vector << 1) + (isBorder(0, 1) < gray);
-        vector = (vector << 1) + (isBorder(-1, 1) < gray);
-        vector = (vector << 1) + (isBorder(-1, 0) < gray);
+        vector = (vector << 1) | (isBorder(-1, -1) < gray);
+        vector = (vector << 1) | (isBorder(0, -1) < gray);
+        vector = (vector << 1) | (isBorder(1, -1) < gray);
+        vector = (vector << 1) | (isBorder(1, 0) < gray);
+        vector = (vector << 1) | (isBorder(1, 1) < gray);
+        vector = (vector << 1) | (isBorder(0, 1) < gray);
+        vector = (vector << 1) | (isBorder(-1, 1) < gray);
+        vector = (vector << 1) | (isBorder(-1, 0) < gray);
 
         bitVectorData[index] = vector;
     }

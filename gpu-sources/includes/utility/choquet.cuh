@@ -5,4 +5,4 @@
 
 #include "image.cuh"
 
-__global__ void calculateChoquetMask(const Pixel* colorComponents, const float* textureComponents, Bit* result, size_t batch_index, size_t batch_size, int width, int height);
+__global__ void calculateChoquetMask(const std::array<float, 2>* colorComponents, const float* textureComponents, Bit* result, size_t batch_size, int width, int height);

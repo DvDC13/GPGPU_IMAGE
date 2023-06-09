@@ -15,7 +15,7 @@
 template <class T>
 class Image;
 
-using Pixel = std::array<float, 3>;
+using Pixel = std::array<uint8_t, 3>;
 using Bit = bool;
 using shared_image = std::shared_ptr<Image<Pixel>>;
 using shared_mask = std::shared_ptr<Image<Bit>>;

@@ -21,8 +21,8 @@ uint8_t* getBitVector(shared_image image)
     // Allocate device memory
     Pixel* deviceImageData;
     uint8_t* deviceBitVectorData;
-    cudaXMalloc((void**)&deviceImageData, size * sizeof(Pixel));
-    cudaXMalloc((void**)&deviceBitVectorData, size * sizeof(uint8_t));
+    cudaXCalloc((void**)&deviceImageData, size * sizeof(Pixel));
+    cudaXCalloc((void**)&deviceBitVectorData, size * sizeof(uint8_t));
 
     // Copy image data from host to device
     cudaXMemcpy(deviceImageData, image->get_data().data(), size * sizeof(Pixel), cudaMemcpyHostToDevice);
@@ -61,35 +61,60 @@ int main(int argc, char** argv)
 
     shared_image background = load_png(files[0]);
 
-    size_t batch_size = images.size();
-
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-    uint8_t* backgroundBitVector = getBitVector(background);
-
     size_t height = images[0]->get_height();
     size_t width = images[0]->get_width();
 
+    size_t memory_usage = width * height * ((sizeof(Pixel)) + sizeof(uint8_t) + sizeof(float) + sizeof(Bit) + sizeof(std::array<float, 2>));
+    size_t memory_usage_bg = width * height * (sizeof(uint8_t) + sizeof(Pixel));
+
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, deviceCount - 1);
+    size_t maximum_global_memory = deviceProp.totalGlobalMem;
+    size_t max_batch_size = std::floor((maximum_global_memory - memory_usage_bg) / memory_usage);
+    // size_t batch_size = std::min(max_batch_size, images.size());
+    size_t batch_size = 10;
+
+    std::cout << "Height: " << height << std::endl;
+    std::cout << "Width: " << width << std::endl;
+    std::cout << "Memory usage: " << memory_usage << std::endl;
+    std::cout << "Memory usage background: " << memory_usage_bg << std::endl;
+    std::cout << "Maximum global memory: " << maximum_global_memory << std::endl;
+    std::cout << "Maximum batch size: " << max_batch_size << std::endl;
+    std::cout << "Batch size: " << batch_size << std::endl;
+
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+    cudaStream_t stream1;
+    cudaStream_t stream2;
+
+    cudaStreamCreate(&stream1);
+    cudaStreamCreate(&stream2);
+
+    uint8_t* backgroundBitVector = getBitVector(background);
+
     Pixel* backgroundData;
-    cudaXMalloc((void**)&backgroundData, width * height * sizeof(Pixel));
+    cudaXCalloc((void**)&backgroundData, width * height * sizeof(Pixel));
     cudaXMemcpy(backgroundData, background->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
 
     Pixel* imagesData;
-    cudaXMalloc((void**)&imagesData, width * height * images.size() * sizeof(Pixel));
-    for (size_t i = 0; i < images.size(); i++)
-        cudaXMemcpy(imagesData + i * height * width, images[i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
+    cudaXCalloc((void**)&imagesData, width * height * batch_size * sizeof(Pixel));
 
-    Pixel* colorData;
-    cudaXMalloc((void**)&colorData, width * height * images.size() * sizeof(Pixel));
+    std::array<float, 2>* colorData;
+    cudaXCalloc((void**)&colorData, width * height * batch_size * sizeof(std::array<float, 2>));
 
     uint8_t* bitVectorData;
-    cudaXMalloc((void**)&bitVectorData, width * height * images.size() * sizeof(uint8_t));
+    cudaXCalloc((void**)&bitVectorData, width * height * batch_size * sizeof(uint8_t));
 
     float* textureData;
-    cudaXMalloc((void**)&textureData, width * height * images.size() * sizeof(float));
+    cudaXCalloc((void**)&textureData, width * height * batch_size * sizeof(float));
 
     Bit* batch_masks;
-    cudaXMalloc((void**)&batch_masks, width * height * images.size() * sizeof(Bit));
+    cudaXCalloc((void**)&batch_masks, width * height * batch_size * sizeof(Bit));
+
+    Bit* data_to_save;
+    cudaXMallocHost((void**)&data_to_save, width * height * images.size() * sizeof(Bit));
 
     for (auto it = images.begin(); it != images.end(); it += batch_size)
     {
@@ -100,22 +125,23 @@ int main(int argc, char** argv)
             batch_size = batch_end - it;
         }
 
+        for (size_t i = 0; i < batch_size; i++)
+            cudaXMemcpy(imagesData + i * width * height, images[it - images.begin() + i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
+
         shared_image* batch_images = &(*it);
 
         dim3 blockSize(16, 16, 4);
         dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y, (batch_size + blockSize.z - 1) / blockSize.z);
 
-        calculateSimilarityMeasures<<<gridSize, blockSize>>>(imagesData, backgroundData, colorData, it - images.begin(), batch_size, width, height);
+        calculateSimilarityMeasures<<<gridSize, blockSize, 0, stream1>>>(imagesData, backgroundData, colorData, batch_size, width, height);
+        calculateBitVector<<<gridSize, blockSize, 0, stream2>>>(imagesData, bitVectorData, batch_size, width, height);
+        calculateTextureComponents<<<gridSize, blockSize, 0, stream2>>>(bitVectorData, backgroundBitVector, textureData, batch_size, width, height);
         cudaDeviceSynchronize();
 
-        calculateBitVector<<<gridSize, blockSize>>>(imagesData, bitVectorData, it - images.begin(), batch_size, width, height);
+        calculateChoquetMask<<<gridSize, blockSize>>>(colorData, textureData, batch_masks, batch_size, width, height);
         cudaDeviceSynchronize();
 
-        calculateTextureComponents<<<gridSize, blockSize>>>(bitVectorData, backgroundBitVector, textureData, it - images.begin(), batch_size, width, height);
-        cudaDeviceSynchronize();
-
-        calculateChoquetMask<<<gridSize, blockSize>>>(colorData, textureData, batch_masks, it - images.begin(), batch_size, width, height);
-        cudaDeviceSynchronize();
+        cudaXMemcpy(data_to_save + (it - images.begin()) * width * height, batch_masks, width * height * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
 
         if (cudaPeekAtLastError())
             gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
@@ -123,19 +149,31 @@ int main(int argc, char** argv)
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
-    shared_mask mask = std::make_shared<Image<Bit>>(images[0]->get_width(), images[0]->get_height());
-    Bit* data = new Bit[width * height];
+    shared_mask mask = std::make_shared<Image<Bit>>(width, height);
     for (size_t i = 0; i < images.size(); i++)
     {
-        cudaXMemcpy(data, batch_masks + i * width * height, width * height * sizeof(Bit), cudaMemcpyDeviceToHost);
-        mask->set_data(data);
-        save_mask("dataset/results/mask_" + std::to_string(i) + ".png", mask);
+        mask->set_data(data_to_save + i * width * height);
+        char nb[6];
+        snprintf(nb, 6, "%05lu", i);
+        save_mask("dataset/results/mask_" + std::string(nb) + ".png", mask);
     }
-    delete[] data;
 
     float total_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     std::cout << "Elapsed time: " << total_time << " ms" << std::endl;
-    std::cout << "FPS: " << 1000.0f / (total_time / images.size()) << std::endl;
+    float fps = 1000.0f / (total_time / images.size());
+    std::cout << "FPS: " << fps << std::endl;
+    std::cout << "PPS: " << fps * width * height << std::endl; 
+
+    cudaXFree(backgroundData);
+    cudaXFree(imagesData);
+    cudaXFree(colorData);
+    cudaXFree(bitVectorData);
+    cudaXFree(textureData);
+    cudaXFree(batch_masks);
+    cudaXFreeHost(data_to_save);
+
+    cudaStreamDestroy(stream1);
+    cudaStreamDestroy(stream2);
 
     cudaDeviceReset();
 

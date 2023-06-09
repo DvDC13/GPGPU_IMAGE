@@ -21,15 +21,17 @@ __device__ void sort3(T (&arr)[N])
         swap(arr[0], arr[1]);
 }
 
-__global__ void calculateChoquetIntegral(const Pixel* colorComponents, const
-float* textureComponents, float* result, int width, int height)
+__global__ void calculateChoquetMask(const Pixel* colorComponents,
+                                         const float* textureComponents,
+                                         Bit* result, size_t batch_index, size_t batch_size, int width, int height)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int z = blockIdx.z * blockDim.z + threadIdx.z;
 
-    if (x < width && y < height)
+    if (x < width && y < height && z < batch_size)
     {
-        int index = y * width + x;
+        int index = (z + batch_index) * width * height + y * width + x;
 
         float indicators[3];
         indicators[0] = colorComponents[index][0];
@@ -38,41 +40,8 @@ float* textureComponents, float* result, int width, int height)
 
         sort3<float>(indicators);
 
-        result[index] = indicators[0] * 0.1f + indicators[1] * 0.3f +
-        indicators[2] * 0.6f;
+        float choquet = indicators[0] * 0.1f + indicators[1] * 0.3f + indicators[2] * 0.6f;
+
+        result[index] = choquet > 0.67f ? false : true;
     }
 }
-
-// __device__ void calculateChoquetIntegral(const Pixel* colorComponents,
-//                                          const float* textureComponents,
-//                                          float* result, int width, int height, int index)
-// {
-//     float indicators[3];
-//     indicators[0] = colorComponents[index][0];
-//     indicators[1] = colorComponents[index][1];
-//     indicators[2] = textureComponents[index];
-
-//     sort3<float>(indicators);
-
-//     result[index] =
-//         indicators[0] * 0.1f + indicators[1] * 0.3f + indicators[2] * 0.6f;
-// }
-
-__global__ void calculateMask(const float* choquetIntegral, Bit* result,
-                              int width, int height, float threshold)
-{
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (x < width && y < height)
-    {
-        int index = y * width + x;
-        result[index] = choquetIntegral[index] > threshold ? false : true;
-    }
-}
-
-// __device__ void calculateMask(const float* choquetIntegral, Bit* result,
-//                               int width, int height, float threshold, int index)
-// {
-//     result[index] = choquetIntegral[index] > threshold ? false : true;
-// }

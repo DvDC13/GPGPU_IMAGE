@@ -5,13 +5,4 @@
 
 #include "image.cuh"
 
-__global__ void calculateChoquetIntegral(const Pixel* colorComponents, const float* textureComponents, float* result, int width, int height);
-
-// __device__ void calculateChoquetIntegral(const Pixel* colorComponents,
-//                                          const float* textureComponents,
-//                                          float* result, int width, int height, int index);
-
-__global__ void calculateMask(const float* choquetIntegral, Bit* result, int width, int height, float threshold);
-
-// __device__ void calculateMask(const float* choquetIntegral, Bit* result,
-//                               int width, int height, float threshold, int index);
+__global__ void calculateChoquetMask(const Pixel* colorComponents, const float* textureComponents, Bit* result, size_t batch_index, size_t batch_size, int width, int height);

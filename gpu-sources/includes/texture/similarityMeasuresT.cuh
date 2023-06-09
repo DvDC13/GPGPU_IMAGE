@@ -5,6 +5,4 @@
 
 #include "image.cuh"
 
-__global__ void calculateTextureComponents(uint8_t* image, uint8_t* background, float* result, int width, int height);
-
-// __device__ void calculateTextureComponents(uint8_t* image, uint8_t* background, float* result, int width, int height, int index);
+__global__ void calculateTextureComponents(uint8_t* image, uint8_t* background, float* result, size_t batch_index, size_t batch_size, int width, int height);

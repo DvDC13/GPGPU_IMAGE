@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 
 #define gpuErrorCheck(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 

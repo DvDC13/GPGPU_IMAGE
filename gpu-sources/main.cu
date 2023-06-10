@@ -67,14 +67,10 @@ int main(int argc, char** argv)
     size_t memory_usage = width * height * ((sizeof(Pixel)) + sizeof(uint8_t) + sizeof(float) + sizeof(Bit) + sizeof(std::array<float, 2>));
     size_t memory_usage_bg = width * height * (sizeof(uint8_t) + sizeof(Pixel));
 
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, deviceCount - 1);
-    size_t maximum_global_memory = deviceProp.totalGlobalMem;
+    size_t maximum_global_memory = 0;
+    cudaMemGetInfo(&maximum_global_memory, nullptr);
     size_t max_batch_size = std::floor((maximum_global_memory - memory_usage_bg) / memory_usage);
-    // size_t batch_size = std::min(max_batch_size, images.size());
-    size_t batch_size = 10;
+    size_t batch_size = std::min(max_batch_size, images.size());
 
     std::cout << "Height: " << height << std::endl;
     std::cout << "Width: " << width << std::endl;

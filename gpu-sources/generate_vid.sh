@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 mkdir -p dataset/video_frames/
 mkdir -p dataset/results/

@@ -21,8 +21,8 @@ uint8_t* getBitVector(shared_image image)
     // Allocate device memory
     Pixel* deviceImageData;
     uint8_t* deviceBitVectorData;
-    cudaXCalloc((void**)&deviceImageData, size * sizeof(Pixel));
-    cudaXCalloc((void**)&deviceBitVectorData, size * sizeof(uint8_t));
+    cudaXMalloc((void**)&deviceImageData, size * sizeof(Pixel));
+    cudaXMalloc((void**)&deviceBitVectorData, size * sizeof(uint8_t));
 
     // Copy image data from host to device
     cudaXMemcpy(deviceImageData, image->get_data().data(), size * sizeof(Pixel), cudaMemcpyHostToDevice);
@@ -91,26 +91,46 @@ int main(int argc, char** argv)
     uint8_t* backgroundBitVector = getBitVector(background);
 
     Pixel* backgroundData;
-    cudaXCalloc((void**)&backgroundData, width * height * sizeof(Pixel));
+    cudaXMalloc((void**)&backgroundData, width * height * sizeof(Pixel));
     cudaXMemcpy(backgroundData, background->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
 
-    Pixel* imagesData;
-    cudaXCalloc((void**)&imagesData, width * height * batch_size * sizeof(Pixel));
 
-    std::array<float, 2>* colorData;
-    cudaXCalloc((void**)&colorData, width * height * batch_size * sizeof(std::array<float, 2>));
+    //void cudaXMalloc3D(void** devPtr, size_t elem_size, size_t* pitch, size_t w, size_t h, size_t d)
+    
+    size_t imagePitch = 0;
+    Pixel* imagesData = nullptr;
+    // cudaXMalloc((void**)&imagesData, width * height * batch_size * sizeof(Pixel));
+    cudaXMalloc3D((void**) &imagesData, sizeof(Pixel), &imagePitch, width,
+            height, batch_size);
 
-    uint8_t* bitVectorData;
-    cudaXCalloc((void**)&bitVectorData, width * height * batch_size * sizeof(uint8_t));
 
-    float* textureData;
-    cudaXCalloc((void**)&textureData, width * height * batch_size * sizeof(float));
+    size_t colorPitch = 0;
+    std::array<float, 2>* colorData = nullptr;
+    // cudaXMalloc((void**)&colorData, width * height * batch_size * sizeof(std::array<float, 2>));
+    cudaXMalloc3D((void**) &colorData, sizeof(std::array<float, 2>), &colorPitch, width,
+            height, batch_size);
 
-    Bit* batch_masks;
-    cudaXCalloc((void**)&batch_masks, width * height * batch_size * sizeof(Bit));
+    size_t bitVecPitch = 0;
+    uint8_t* bitVectorData = nullptr;
+    // cudaXMalloc((void**)&bitVectorData, width * height * batch_size * sizeof(uint8_t));
+    cudaXMalloc3D((void**) &bitVectorData, sizeof(uint8_t), &colorPitch, width,
+            height, batch_size);
+
+    size_t texturePitch = 0;
+    float* textureData = nullptr;
+    // cudaXMalloc((void**)&textureData, width * height * batch_size * sizeof(float));
+    cudaXMalloc3D((void**) &textureData, sizeof(float), &texturePitch, width,
+            height, batch_size);
+
+    size_t masksPitch = 0;
+    Bit* batch_masks = nullptr;
+    //cudaXMalloc((void**)&batch_masks, width * height * batch_size * sizeof(Bit));
+    cudaXMalloc3D((void**) &batch_masks, sizeof(Bit), &masksPitch, width,
+            height, batch_size);
 
     Bit* data_to_save;
-    cudaXMallocHost((void**)&data_to_save, width * height * images.size() * sizeof(Bit));
+    cudaXMallocHost((void**)&data_to_save, (width * height * sizeof(Bit) +
+                masksPitch) * images.size() );
 
     for (auto it = images.begin(); it != images.end(); it += batch_size)
     {
@@ -129,15 +149,27 @@ int main(int argc, char** argv)
         dim3 blockSize(16, 16, 4);
         dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y, (batch_size + blockSize.z - 1) / blockSize.z);
 
-        calculateSimilarityMeasures<<<gridSize, blockSize, 0, stream1>>>(imagesData, backgroundData, colorData, batch_size, width, height);
-        calculateBitVector<<<gridSize, blockSize, 0, stream2>>>(imagesData, bitVectorData, batch_size, width, height);
-        calculateTextureComponents<<<gridSize, blockSize, 0, stream2>>>(bitVectorData, backgroundBitVector, textureData, batch_size, width, height);
+        calculateSimilarityMeasures<<<gridSize, blockSize, 0,
+            stream1>>>(imagesData, backgroundData, colorData, batch_size, width,
+                    height, imagePitch, colorPitch);
+        calculateBitVector<<<gridSize, blockSize, 0, stream2>>>(imagesData,
+                bitVectorData, batch_size, width, height, imagePitch,
+                bitVecPitch);
+        calculateTextureComponents<<<gridSize, blockSize, 0,
+            stream2>>>(bitVectorData, backgroundBitVector, textureData,
+                    batch_size, width, height, bitVecPitch, texturePitch);
         cudaDeviceSynchronize();
 
-        calculateChoquetMask<<<gridSize, blockSize>>>(colorData, textureData, batch_masks, batch_size, width, height);
+        calculateChoquetMask<<<gridSize, blockSize>>>(colorData, textureData,
+                batch_masks, batch_size, width, height, colorPitch, texturePitch, masksPitch);
         cudaDeviceSynchronize();
 
-        cudaXMemcpy(data_to_save + (it - images.begin()) * width * height, batch_masks, width * height * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
+        //cudaXMemcpy(data_to_save + (it - images.begin()) * width * height, batch_masks, width * height * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
+        //cudaXMemcpy3D(data_to_save + (it - images.begin()) * width * height,
+        //        masksPitch, batch_masks, masksPitch, width, height, batch_size,
+        //        cudaMemcpyDeviceToHost);
+        cudaXMemcpy(data_to_save + (it - images.begin()) * (width * height +
+                    masksPitch), batch_masks, (width * height + masksPitch) * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
 
         if (cudaPeekAtLastError())
             gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
@@ -148,7 +180,7 @@ int main(int argc, char** argv)
     shared_mask mask = std::make_shared<Image<Bit>>(width, height);
     for (size_t i = 0; i < images.size(); i++)
     {
-        mask->set_data(data_to_save + i * width * height);
+        mask->set_data(data_to_save + i * (width * height + masksPitch));
         char nb[6];
         snprintf(nb, 6, "%05lu", i);
         save_mask("dataset/results/mask_" + std::string(nb) + ".png", mask);

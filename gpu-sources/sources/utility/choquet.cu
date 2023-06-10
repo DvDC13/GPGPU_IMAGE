@@ -23,7 +23,8 @@ __device__ void sort3(T (&arr)[N])
 
 __global__ void calculateChoquetMask(const std::array<float, 2>* colorComponents,
                                          const float* textureComponents,
-                                         Bit* result, size_t batch_size, int width, int height)
+                                         Bit* result, size_t batch_size, int
+                                         width, int height, size_t colorPitch, size_t texturePitch, size_t masksPitch)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -31,17 +32,22 @@ __global__ void calculateChoquetMask(const std::array<float, 2>* colorComponents
 
     if (x < width && y < height && z < batch_size)
     {
-        int index = z * width * height + y * width + x;
+        int colorIndex = x + y * colorPitch / sizeof(std::array<float, 2>) + z *
+            colorPitch / sizeof(std::array<float, 2>) * height;
+        int textureIndex = x + y * texturePitch / sizeof(float) + z *
+            texturePitch / sizeof(float) * height;
+        int resultIndex = x + y * masksPitch / sizeof(Bit) + z *
+            masksPitch / sizeof(Bit) * height;
 
         float indicators[3];
-        indicators[0] = colorComponents[index][0];
-        indicators[1] = colorComponents[index][1];
-        indicators[2] = textureComponents[index];
+        indicators[0] = colorComponents[colorIndex][0];
+        indicators[1] = colorComponents[colorIndex][1];
+        indicators[2] = textureComponents[textureIndex];
 
         sort3<float>(indicators);
 
         float choquet = indicators[0] * 0.1f + indicators[1] * 0.3f + indicators[2] * 0.6f;
 
-        result[index] = choquet > 0.67f ? false : true;
+        result[resultIndex] = choquet > 0.67f ? false : true;
     }
 }

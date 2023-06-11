@@ -22,6 +22,45 @@ shared_image load_png(const std::string filename)
     return result;
 }
 
+Pixel* load_image_batch(const std::vector<std::string> filenames)
+{
+    size_t width, height;
+    png_bytep* row_pointers =
+        png_utility::read_png_file(filename, width, height);
+
+    Pixel* result = new Pixel[width * height * filenames.size()];
+
+    for (size_t y = 0; y < height; y++)
+    {
+        png_bytep row = row_pointers[y];
+        memcpy(result + y * width, row, width * sizeof(Pixel));
+    }
+
+    for (size_t y = 0; y < height; y++)
+        delete[] row_pointers[y];
+    delete[] row_pointers;
+
+    for (size_t i = 1; i < filenames.size(); i++)
+    {
+        size_t width, height;
+        png_bytep* row_pointers =
+            png_utility::read_png_file(filenames[i], width, height);
+
+        for (size_t y = 0; y < height; y++)
+        {
+            png_bytep row = row_pointers[y];
+            memcpy(result + i * width * height + y * width, row,
+                   width * sizeof(Pixel));
+        }
+
+        for (size_t y = 0; y < height; y++)
+            delete[] row_pointers[y];
+        delete[] row_pointers;
+    }
+
+    return result;
+}
+
 void save_png(const std::string filename, shared_image image)
 {
     size_t width = image->width;

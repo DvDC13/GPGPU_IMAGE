@@ -115,8 +115,7 @@ int main(int argc, char** argv)
     
     cudaPitchedPtr imagesPtr = { 0 };
     // cudaXMalloc((void**)&imagesData, width * height * batch_size * sizeof(Pixel));
-    cudaXMalloc3D(&imagesPtr, sizeof(Pixel), width,
-            height, batch_size);
+    cudaXMalloc3D(&imagesPtr, sizeof(Pixel), width, height, batch_size);
     Pixel* imagesData = (Pixel*) imagesPtr.ptr;
     size_t imagePitch = imagesPtr.pitch;
 
@@ -150,8 +149,8 @@ int main(int argc, char** argv)
     Bit* batch_masks = (Bit *) batchMasksPtr.ptr;
 
     Bit* data_to_save;
-    cudaXMallocHost((void **) &data_to_save, (width * height * sizeof(Bit) *
-                images.size()));
+    cudaXMallocHost((void **) &data_to_save, width * height * sizeof(Bit) *
+                files.size());
 
     int image_len = files.size();
     //for (auto it = images.begin(); it != images.end(); it += batch_size)
@@ -175,9 +174,9 @@ int main(int argc, char** argv)
            // cudaXMemcpy(imagesData + i * width * height, images[it - images.begin() + i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
         std::cout << "Image pitch: " << imagePitch << '\n';
         std::cout << "batch pitch: " <<  width * sizeof(Pixel) << '\n';
-        cudaPitchedPtr hostPtr = make_cudaPitchedPtr ( data_to_save, width *
+        cudaPitchedPtr hostPtr = make_cudaPitchedPtr (batch, width *
                 sizeof(Pixel), width, height);
-        cudaXMemcpy3D(imagesPtr, hostPtr, batch_size, cudaMemcpyDeviceToHost);
+        cudaXMemcpy3D(imagesPtr, hostPtr, batch_size, cudaMemcpyHostToDevice);
 
         dim3 blockSize(16, 16, 4);
         dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y, (batch_size + blockSize.z - 1) / blockSize.z);
@@ -197,23 +196,18 @@ int main(int argc, char** argv)
                 batch_masks, batch_size, width, height, colorPitch, texturePitch, masksPitch);
         cudaDeviceSynchronize();
 
-        //cudaXMemcpy(data_to_save + (it - images.begin()) * width * height, batch_masks, width * height * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
-        //cudaXMemcpy3D(data_to_save + (it - images.begin()) * width * height,
-        //        masksPitch, batch_masks, masksPitch, width, height, batch_size,
-        //        cudaMemcpyDeviceToHost);
-        // cudaXMemcpy(data_to_save + (it - images.begin()) * (width * height +
-        //           masksPitch), batch_masks, (width * height + masksPitch) * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
 
-        if (cudaPeekAtLastError())
-            gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
+        cudaPitchedPtr hostResPtr = make_cudaPitchedPtr(data_to_save, width *
+                sizeof(Bit), width, height);
+        cudaXMemcpy3D(hostResPtr, batchMasksPtr, batch_size, cudaMemcpyDeviceToHost);
     }
 
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
     shared_mask mask = std::make_shared<Image<Bit>>(width, height);
-    for (size_t i = 0; i < images.size(); i++)
+    for (size_t i = 0; i < files.size(); i++)
     {
-        mask->set_data(data_to_save + i * (width * height + masksPitch));
+        mask->set_data(data_to_save + i * width * height);
         char nb[6];
         snprintf(nb, 6, "%05lu", i);
         save_mask("dataset/results/mask_" + std::string(nb) + ".png", mask);
@@ -221,7 +215,7 @@ int main(int argc, char** argv)
 
     float total_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     std::cout << "Elapsed time: " << total_time << " ms" << std::endl;
-    float fps = 1000.0f / (total_time / images.size());
+    float fps = 1000.0f / (total_time / files.size());
     std::cout << "FPS: " << fps << std::endl;
     std::cout << "PPS: " << fps * width * height << std::endl; 
 

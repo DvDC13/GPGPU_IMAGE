@@ -38,7 +38,7 @@ void cudaXMemcpy3D(cudaPitchedPtr dst, cudaPitchedPtr src, size_t depth, cudaMem
     cudaMemcpy3DParms params = {0};
     params.srcPtr = src;
     params.dstPtr = dst;
-    params.extent = make_cudaExtent(src.pitch, src.ysize, depth);
+    params.extent = make_cudaExtent(std::min(src.pitch, dst.pitch), src.ysize, depth);
     params.kind = kind;
 
     gpuErrorCheck(cudaMemcpy3D(&params));

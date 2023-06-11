@@ -56,13 +56,14 @@ int main(int argc, char** argv)
 
     files.reserve(files.size() - 1);
 
-    for (auto it = files.begin() + 1; it != files.end(); it++)
-        images.push_back(load_png(*it));
 
     shared_image background = load_png(files[0]);
 
-    size_t height = images[0]->get_height();
-    size_t width = images[0]->get_width();
+    size_t height = background->get_height();
+    size_t width = background->get_width();
+
+    // for (auto it = files.begin() + 1; it != files.end(); it++)
+    //     images.push_back(load_png(*it));
 
     size_t memory_usage = width * height * ((sizeof(Pixel)) + sizeof(uint8_t) + sizeof(float) + sizeof(Bit) + sizeof(std::array<float, 2>));
     size_t memory_usage_bg = width * height * (sizeof(uint8_t) + sizeof(Pixel));
@@ -70,7 +71,29 @@ int main(int argc, char** argv)
     size_t maximum_global_memory = 0;
     cudaMemGetInfo(&maximum_global_memory, nullptr);
     size_t max_batch_size = std::floor((maximum_global_memory - memory_usage_bg) / memory_usage);
-    size_t batch_size = std::min(max_batch_size, images.size());
+    size_t batch_size = std::min(max_batch_size, files.size());
+
+    std::vector<Pixel *> batches;
+    for (size_t batch_num = 0; batch_num < std::ceil(float(files.size()) /
+                float(batch_size)); batch_num++)
+    {
+        std::cout << "files " << files.size() << '\n';
+        std::cout << "start ind " << batch_num * batch_size << '\n';
+        std::cout << "end   ind " << std::min((batch_num + 1) * batch_size,
+                files.size()) << '\n';
+
+        auto start_iter =  files.begin() + batch_num * batch_size;
+        auto end_iter = files.begin() +  std::min(
+                            (batch_num + 1) * batch_size,
+                            files.size()
+                            );
+
+        std::cout << "BATCH SIZE " << end_iter - start_iter << '\n';
+        std::vector<std::string> subvect = std::vector<std::string>(start_iter,
+                end_iter);
+        Pixel* batch = load_image_batch(subvect);
+        batches.push_back(batch);
+    }
 
     std::cout << "Height: " << height << std::endl;
     std::cout << "Width: " << width << std::endl;
@@ -129,22 +152,31 @@ int main(int argc, char** argv)
             height, batch_size);
 
     Bit* data_to_save;
-    cudaXMallocHost((void**)&data_to_save, (width * height * sizeof(Bit) +
-                masksPitch) * images.size() );
+    cudaXMallocHost((void**)&data_to_save, (width * height * sizeof(Bit) *
+                images.size()));
 
-    for (auto it = images.begin(); it != images.end(); it += batch_size)
+    int image_len = files.size();
+    //for (auto it = images.begin(); it != images.end(); it += batch_size)
+    for (Pixel* batch : batches)
     {
-        auto batch_end = it + batch_size;
-        if (batch_end > images.end())
-        {
-            batch_end = images.end();
-            batch_size = batch_end - it;
-        }
+        image_len -= batch_size;
+        if (image_len < 0)
+            batch_size += image_len;
 
-        for (size_t i = 0; i < batch_size; i++)
-            cudaXMemcpy(imagesData + i * width * height, images[it - images.begin() + i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
 
-        shared_image* batch_images = &(*it);
+        // auto batch_end = it + batch_size;
+        // if (batch_end > images.end())
+        // {
+        //     batch_end = images.end();
+        //     batch_size = batch_end - it;
+        // }
+
+
+
+        // for (size_t i = 0; i < batch_size; i++)
+           // cudaXMemcpy(imagesData + i * width * height, images[it - images.begin() + i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
+        cudaXMemcpy3D(imagesData, imagePitch, batch, width * height *
+                sizeof(Pixel), width, height, batch_size, cudaMemcpyDeviceToHost);
 
         dim3 blockSize(16, 16, 4);
         dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y, (batch_size + blockSize.z - 1) / blockSize.z);
@@ -168,8 +200,8 @@ int main(int argc, char** argv)
         //cudaXMemcpy3D(data_to_save + (it - images.begin()) * width * height,
         //        masksPitch, batch_masks, masksPitch, width, height, batch_size,
         //        cudaMemcpyDeviceToHost);
-        cudaXMemcpy(data_to_save + (it - images.begin()) * (width * height +
-                    masksPitch), batch_masks, (width * height + masksPitch) * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
+        // cudaXMemcpy(data_to_save + (it - images.begin()) * (width * height +
+        //           masksPitch), batch_masks, (width * height + masksPitch) * batch_size * sizeof(Bit), cudaMemcpyDeviceToHost);
 
         if (cudaPeekAtLastError())
             gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);

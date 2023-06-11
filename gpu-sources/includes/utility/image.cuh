@@ -24,6 +24,7 @@ using shared_float_vector = std::shared_ptr<Image<float>>;
 
 shared_image load_png(const std::string filename);
 void save_png(const std::string filename, shared_image image);
+Pixel* load_image_batch(const std::vector<std::string> filenames);
 
 template <class T>
 class Image

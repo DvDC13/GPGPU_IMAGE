@@ -55,7 +55,8 @@ __global__ void calculateBitVector(const Pixel* imageData, uint8_t* bitVectorDat
 
         auto isBorder = [&](int dx, int dy) {
             if (x + dx >= 0 && x + dx < width && y + dy >= 0 && y + dy < height) {
-                return getGrayscale(imageData[(y + dy) * width + (x + dx)]);
+                return getGrayscale(imageData[(y + dy) * width + (x + dx) + z *
+                width * height]);
             }
             else {
                 return 255.0f;

@@ -77,18 +77,11 @@ int main(int argc, char** argv)
     for (size_t batch_num = 0; batch_num < std::ceil(float(files.size()) /
                 float(batch_size)); batch_num++)
     {
-        std::cout << "files " << files.size() << '\n';
-        std::cout << "start ind " << batch_num * batch_size << '\n';
-        std::cout << "end   ind " << std::min((batch_num + 1) * batch_size,
-                files.size()) << '\n';
-
         auto start_iter =  files.begin() + batch_num * batch_size;
         auto end_iter = files.begin() +  std::min(
                             (batch_num + 1) * batch_size,
                             files.size()
                             );
-
-        std::cout << "BATCH SIZE " << end_iter - start_iter << '\n';
         std::vector<std::string> subvect = std::vector<std::string>(start_iter,
                 end_iter);
         Pixel* batch = load_image_batch(subvect);
@@ -120,39 +113,44 @@ int main(int argc, char** argv)
 
     //void cudaXMalloc3D(void** devPtr, size_t elem_size, size_t* pitch, size_t w, size_t h, size_t d)
     
-    size_t imagePitch = 0;
-    Pixel* imagesData = nullptr;
+    cudaPitchedPtr imagesPtr = { 0 };
     // cudaXMalloc((void**)&imagesData, width * height * batch_size * sizeof(Pixel));
-    cudaXMalloc3D((void**) &imagesData, sizeof(Pixel), &imagePitch, width,
+    cudaXMalloc3D(&imagesPtr, sizeof(Pixel), width,
             height, batch_size);
+    Pixel* imagesData = (Pixel*) imagesPtr.ptr;
+    size_t imagePitch = imagesPtr.pitch;
 
 
-    size_t colorPitch = 0;
-    std::array<float, 2>* colorData = nullptr;
+    cudaPitchedPtr colorPtr = { 0 };
     // cudaXMalloc((void**)&colorData, width * height * batch_size * sizeof(std::array<float, 2>));
-    cudaXMalloc3D((void**) &colorData, sizeof(std::array<float, 2>), &colorPitch, width,
+    cudaXMalloc3D(&colorPtr, sizeof(std::array<float, 2>), width,
             height, batch_size);
+    std::array<float, 2>* colorData = (std::array<float, 2> *) colorPtr.ptr;
+    size_t colorPitch = colorPtr.pitch;
 
-    size_t bitVecPitch = 0;
-    uint8_t* bitVectorData = nullptr;
+    cudaPitchedPtr bitVectorPtr = { 0 };
     // cudaXMalloc((void**)&bitVectorData, width * height * batch_size * sizeof(uint8_t));
-    cudaXMalloc3D((void**) &bitVectorData, sizeof(uint8_t), &colorPitch, width,
+    cudaXMalloc3D(&bitVectorPtr, sizeof(uint8_t), width,
             height, batch_size);
+    size_t bitVecPitch = bitVectorPtr.pitch;
+    uint8_t* bitVectorData = (uint8_t *) bitVectorPtr.ptr;
 
-    size_t texturePitch = 0;
-    float* textureData = nullptr;
+    cudaPitchedPtr texturePtr = { 0 };
     // cudaXMalloc((void**)&textureData, width * height * batch_size * sizeof(float));
-    cudaXMalloc3D((void**) &textureData, sizeof(float), &texturePitch, width,
+    cudaXMalloc3D(&texturePtr, sizeof(float), width,
             height, batch_size);
+    size_t texturePitch = texturePtr.pitch;
+    float* textureData = (float *) texturePtr.ptr;
 
-    size_t masksPitch = 0;
-    Bit* batch_masks = nullptr;
+    cudaPitchedPtr batchMasksPtr = { 0 };
     //cudaXMalloc((void**)&batch_masks, width * height * batch_size * sizeof(Bit));
-    cudaXMalloc3D((void**) &batch_masks, sizeof(Bit), &masksPitch, width,
+    cudaXMalloc3D(&batchMasksPtr, sizeof(Bit), width,
             height, batch_size);
+    size_t masksPitch = batchMasksPtr.pitch;
+    Bit* batch_masks = (Bit *) batchMasksPtr.ptr;
 
     Bit* data_to_save;
-    cudaXMallocHost((void**)&data_to_save, (width * height * sizeof(Bit) *
+    cudaXMallocHost((void **) &data_to_save, (width * height * sizeof(Bit) *
                 images.size()));
 
     int image_len = files.size();
@@ -175,8 +173,11 @@ int main(int argc, char** argv)
 
         // for (size_t i = 0; i < batch_size; i++)
            // cudaXMemcpy(imagesData + i * width * height, images[it - images.begin() + i]->get_data().data(), width * height * sizeof(Pixel), cudaMemcpyHostToDevice);
-        cudaXMemcpy3D(imagesData, imagePitch, batch, width * height *
-                sizeof(Pixel), width, height, batch_size, cudaMemcpyDeviceToHost);
+        std::cout << "Image pitch: " << imagePitch << '\n';
+        std::cout << "batch pitch: " <<  width * sizeof(Pixel) << '\n';
+        cudaPitchedPtr hostPtr = make_cudaPitchedPtr ( data_to_save, width *
+                sizeof(Pixel), width, height);
+        cudaXMemcpy3D(imagesPtr, hostPtr, batch_size, cudaMemcpyDeviceToHost);
 
         dim3 blockSize(16, 16, 4);
         dim3 gridSize((width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y, (batch_size + blockSize.z - 1) / blockSize.z);

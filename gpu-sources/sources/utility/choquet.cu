@@ -1,4 +1,5 @@
 #include "choquet.cuh"
+#include "index.cuh"
 
 template <typename T>
 __device__ void swap(T& a, T& b)
@@ -21,11 +22,6 @@ __device__ void sort3(T (&arr)[N])
         swap(arr[0], arr[1]);
 }
 
-__device__ char* get_3d(char* data, size_t x, size_t y, size_t z, size_t pitch,
-                        size_t height, size_t elm_size)
-{
-    return data + y * pitch + x * elm_size + z * pitch * height;
-}
 
 __global__ void
 calculateChoquetMask(const std::array<float, 2>* colorComponents,

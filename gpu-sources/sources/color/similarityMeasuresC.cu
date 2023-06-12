@@ -1,10 +1,6 @@
 #include "similarityMeasuresC.cuh"
+#include "index.cuh"
 
-__device__ char* get_3d(char* data, size_t x, size_t y, size_t z, size_t pitch,
-                        size_t height, size_t elm_size)
-{
-    return data + y * pitch + x * elm_size + z * pitch * height;
-}
 
 __global__ void calculateSimilarityMeasures(const Pixel* imageData,
                                             const Pixel* backgroundData,
@@ -42,11 +38,11 @@ __global__ void calculateSimilarityMeasures(const Pixel* imageData,
         size_t result_index = x + y * colorPitch / sizeof(std::array<float, 2>)
             + z * colorPitch / sizeof(std::array<float, 2>) * height;
 
-        std::array<float, 2>* result_ptr = (std::array<float, 2>*)get_3d(
+        std::array<float, 2>* result_ptr = (std::array<float, 2>*) get_3d(
             (char*)result, x, y, z, colorPitch, height,
-            sizeof(std::array<float, 2>)
+            sizeof(std::array<float, 2>));
 
-        (result_ptr*)[0] = similarity_red;
-        (result_ptr*)[1] = similarity_green;
+        (*result_ptr)[0] = similarity_red;
+        (*result_ptr)[1] = similarity_green;
     }
 }

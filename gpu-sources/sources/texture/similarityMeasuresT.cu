@@ -1,10 +1,5 @@
 #include "similarityMeasuresT.cuh"
-
-__device__ char* get_3d(char* data, size_t x, size_t y, size_t z, size_t pitch,
-                        size_t height, size_t elm_size)
-{
-    return data + y * pitch + x * elm_size + z * pitch * height;
-}
+#include "index.cuh"
 
 __global__ void calculateTextureComponents(uint8_t* image, uint8_t* background,
                                            float* result, size_t batch_size,
